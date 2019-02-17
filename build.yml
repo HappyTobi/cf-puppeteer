@@ -1,0 +1,13 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: concourse/static-golang}
+
+inputs:
+  - name: cf-puppeteer
+    path: gopath/src/github.com/happytobi/cf-puppeteer
+
+run:
+  path: gopath/src/github.com/happytobi/cf-puppeteer/scripts/test.sh

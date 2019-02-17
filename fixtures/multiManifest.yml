@@ -1,0 +1,24 @@
+---
+applications:
+  - name: myApp
+    memory: 128M
+    instances: 1
+    routes:
+      - route: route1
+    services:
+      - service1
+      - service2
+    env:
+      VAR1: 1
+      VAR2: https://github.com/happytobi
+  - name: myApp2
+    memory: 128M
+    instances: 1
+    routes:
+      - route: route1
+    services:
+      - service1
+      - service2
+    env:
+      VAR1: 1
+      VAR2: https://github.com/happytobi
