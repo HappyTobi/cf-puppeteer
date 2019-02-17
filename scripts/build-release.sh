@@ -16,6 +16,7 @@ CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o $SANDBOX/cf-puppeteer.exe gi
 echo
 
 find $SANDBOX -type f -exec file {} \;
+find $SANDBOX -type f -exec shasum {} \;
 
 echo
 echo "binaries are in $SANDBOX!"

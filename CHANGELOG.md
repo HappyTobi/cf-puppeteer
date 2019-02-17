@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - will look for new features bringing in new versions
 - try to implement pull requests from original repository
 
+## [0.0.12] - Unreleased
+### Changed
+- Change buildscript to generate sha1 sums for each file
+
+
 ## [0.0.11] - 2019-02-17
 ### Changed
 - Rename plugin because of [CF-Plugin-Repo issue](https://github.com/cloudfoundry/cli-plugin-repo/pull/282#issuecomment-463328661)
