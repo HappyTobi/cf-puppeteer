@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Change buildscript to generate sha1 sums for each file
 
+### Fixed
+- Fix timeout issue when passing no -t argument but a specified timout at manifest (default if nothing was provided)
+
 
 ## [0.0.11] - 2019-02-17
 ### Changed
