@@ -50,7 +50,7 @@ var _ = Describe("Flag Parsing", func() {
 			[]string{
 				"zero-downtime-push",
 				"appname",
-				"-f", "manifest-path",
+				"-f", "./fixtures/manifest.yml",
 				"-p", "app-path",
 				"-s", "stack-name",
 				"-var", "foo=bar",
@@ -61,7 +61,32 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(appName).To(Equal("appname"))
-		Expect(manifestPath).To(Equal("manifest-path"))
+		Expect(manifestPath).To(Equal("./fixtures/manifest.yml"))
+		Expect(appPath).To(Equal("app-path"))
+		Expect(stackName).To(Equal("stack-name"))
+		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
+		Expect(showLogs).To(Equal(false))
+		Expect(timeout).To(Equal(2))
+	})
+
+	It("parses a all args without timeout and no manifest timeout", func() {
+		appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, showLogs, err := ParseArgs(
+			[]string{
+				"zero-downtime-push",
+				"appname",
+				"-f", "./fixtures/multiManifest.yml",
+				"-p", "app-path",
+				"-s", "stack-name",
+				"-var", "foo=bar",
+				"-var", "baz=bob",
+				"-vars-file", "vars.yml",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(appName).To(Equal("appname"))
+		Expect(manifestPath).To(Equal("./fixtures/multiManifest.yml"))
 		Expect(appPath).To(Equal("app-path"))
 		Expect(stackName).To(Equal("stack-name"))
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
@@ -75,7 +100,7 @@ var _ = Describe("Flag Parsing", func() {
 			[]string{
 				"zero-downtime-push",
 				"appname",
-				"-f", "manifest-path",
+				"-f", "./fixtures/manifest.yml",
 				"-p", "app-path",
 				"-s", "stack-name",
 				"-t", "120",
@@ -87,7 +112,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(appName).To(Equal("appname"))
-		Expect(manifestPath).To(Equal("manifest-path"))
+		Expect(manifestPath).To(Equal("./fixtures/manifest.yml"))
 		Expect(appPath).To(Equal("app-path"))
 		Expect(stackName).To(Equal("stack-name"))
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))

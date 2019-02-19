@@ -188,7 +188,7 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	manifestPath := flags.String("f", "", "path to an application manifest")
 	appPath := flags.String("p", "", "path to application files")
 	stackName := flags.String("s", "", "name of the stack to use")
-	timeout := flags.Int("t", 60, "push timout in secounds defualt 60s")
+	timeout := flags.Int("t", 0, "push timout in secounds defualt 60s")
 	showLogs := flags.Bool("show-app-log", false, "tail and show application log during application start")
 	flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
 	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
@@ -210,14 +210,25 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 		return "", "", "", *timeout, "", []string{}, []string{}, false, ErrNoManifest
 	}
 
+	//parse manifest
+	manifest, err := manifest.ParseManifest(*manifestPath)
+	if err != nil {
+		return "", "", "", *timeout, "", []string{}, []string{}, false, ErrManifest
+	}
+
+	//set timeout
+	manifestTimeout := manifest.ApplicationManifests[0].Timeout
+	if manifestTimeout > 0 && *timeout <= 0 {
+		*timeout = manifestTimeout
+	} else if manifestTimeout <= 0 && *timeout <= 0 {
+		*timeout = 60
+	}
+
 	//parse first argument as appName
 	appName := args[1]
 	if noAppNameProvided {
-		manifest, err := manifest.ParseManifest(*manifestPath)
-		if err != nil {
-			return "", "", "", *timeout, "", []string{}, []string{}, false, ErrManifest
-		}
 		appName = manifest.ApplicationManifests[0].Name
+
 	}
 
 	return appName, *manifestPath, *appPath, *timeout, *stackName, vars, varsFiles, *showLogs, nil
