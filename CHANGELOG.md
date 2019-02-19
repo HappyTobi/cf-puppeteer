@@ -4,10 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [UNRELEASED]
-### Added
-- will look for new features bringing in new versions
-- try to implement pull requests from original repository
+## Upcoming features [1.0.0]
+- add argument to cleanup unused enviroment variables
+- add argument to stop old service only instead of deletion
+- log deployment time 
+- add static page with plugin documentation
+- code cleanup
 
 ## [0.0.12] - Unreleased
 ### Changed
