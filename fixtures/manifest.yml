@@ -3,6 +3,7 @@ applications:
   - name: myApp
     memory: 128M
     instances: 1
+    timeout: 2
     routes:
       - route: route1
       - route: route2
