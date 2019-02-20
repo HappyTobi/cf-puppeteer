@@ -1,14 +1,14 @@
-# Cf-puppeteer  
+# CF-puppeteer  
 
 
 *cf plugin for hands-off, zero downtime application deploys*
 
-## Notice
+## notice
 
 Project forked from [contraband](https://github.com/contraband/autopilot).
 Project was updated and renamed to cf-puppeteer to differ the two projects.
 
-# Changelog
+# changelog
 to give  a better overview i created [changelog](CHANGELOG.md) to show all changes and new features.
 
 Switched from go dep to govendor
@@ -46,7 +46,7 @@ $ cf zero-downtime-push \
     -t 120
 ```
 
-## Method
+## method
 
 *CF-Puppeteer* takes a different approach to other zero-downtime plugins. It
 doesn't perform any [complex route re-mappings][indiana-jones] instead it leans
