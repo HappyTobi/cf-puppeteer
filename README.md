@@ -9,16 +9,12 @@ Project forked from [contraband](https://github.com/contraband/autopilot).
 Project was updated and renamed to cf-puppeteer to differ the two projects.
 
 # changelog
-to give  a better overview i created [changelog](CHANGELOG.md) to show all changes and new features.
-
-Switched from go dep to govendor
+to give a better overview what changed, read the [changelog](CHANGELOG.md).
 
 ## version
-The newes version is the 0.0.10 and worked and based on cf-cli version 6.42.0
+The newes version is the 0.0.12 and worked and based on cf-cli version 6.42.0
 
 to get more informations about the newest release see the [Changelog](CHANGELOG.md)
-
-[cf-resource]: https://github.com/concourse/cf-resource
 
 ## cf installation
 
