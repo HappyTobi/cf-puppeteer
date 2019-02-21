@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ func venerableAppName(appName string) string {
 	return fmt.Sprintf("%s-venerable", appName)
 }
 
-func getActionsForApp(appRepo *ApplicationRepo, appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, showLogs bool) []rewind.Action {
+func getActionsForApp(appRepo *ApplicationRepo, appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, envs []string, showLogs bool) []rewind.Action {
 	venName := venerableAppName(appName)
 	var err error
 	var curApp, venApp *AppEntity
@@ -99,7 +100,7 @@ func getActionsForApp(appRepo *ApplicationRepo, appName, manifestPath, appPath, 
 		// push
 		{
 			Forward: func() error {
-				return appRepo.PushApplication(appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, showLogs)
+				return appRepo.PushApplication(appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, envs, showLogs)
 			},
 			ReversePrevious: func() error {
 				if !haveVenToCleanup {
@@ -132,11 +133,11 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	appRepo := NewApplicationRepo(cliConnection)
-	appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, showLogs, err := ParseArgs(args)
+	appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, showLogs),
+		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, envs, showLogs),
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
@@ -179,9 +180,10 @@ func (s *StringSlice) Set(value string) error {
 }
 
 //ParseArgs parse all cmd arguments
-func ParseArgs(args []string) (string, string, string, int, string, []string, []string, bool, error) {
+func ParseArgs(args []string) (string, string, string, int, string, []string, []string, []string, bool, error) {
 	flags := flag.NewFlagSet("zero-downtime-push", flag.ContinueOnError)
 
+	var envs StringSlice
 	var vars StringSlice
 	var varsFiles StringSlice
 
@@ -190,30 +192,32 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	stackName := flags.String("s", "", "name of the stack to use")
 	timeout := flags.Int("t", 0, "push timout in secounds defualt 60s")
 	showLogs := flags.Bool("show-app-log", false, "tail and show application log during application start")
+	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specity multiple times")
 	flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
 	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
 
 	//default start index of parameters is 2 because 1 is the appName
 	argumentStartIndex := 2
 	//if first argument is not the appName we have to read the appName out of the manifest
-	noAppNameProvided := strings.Contains(args[1], "-")
+	noAppNameProvided, _ := regexp.MatchString("^-[a-z]{0,3}", args[1])
+	//noAppNameProvided := strings.Contains(args[1], "-")
 	if noAppNameProvided {
 		argumentStartIndex = 1
 	}
 
 	err := flags.Parse(args[argumentStartIndex:])
 	if err != nil {
-		return "", "", "", *timeout, "", []string{}, []string{}, false, err
+		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, err
 	}
 
 	if *manifestPath == "" {
-		return "", "", "", *timeout, "", []string{}, []string{}, false, ErrNoManifest
+		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrNoManifest
 	}
 
 	//parse manifest
 	manifest, err := manifest.ParseManifest(*manifestPath)
 	if err != nil {
-		return "", "", "", *timeout, "", []string{}, []string{}, false, ErrManifest
+		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrManifest
 	}
 
 	//set timeout
@@ -231,12 +235,22 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 
 	}
 
-	return appName, *manifestPath, *appPath, *timeout, *stackName, vars, varsFiles, *showLogs, nil
+	//validate envs format
+	if len(envs) > 0 {
+		for _, envPair := range envs {
+			if strings.Contains(envPair, "=") == false {
+				return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrWrongEnvFormat
+			}
+		}
+	}
+
+	return appName, *manifestPath, *appPath, *timeout, *stackName, vars, varsFiles, envs, *showLogs, nil
 }
 
 var (
-	ErrNoManifest = errors.New("a manifest is required to push this application")
-	ErrManifest   = errors.New("could not parse manifest")
+	ErrNoManifest     = errors.New("a manifest is required to push this application")
+	ErrManifest       = errors.New("could not parse manifest")
+	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
 )
 
 type ApplicationRepo struct {
@@ -254,7 +268,7 @@ func (repo *ApplicationRepo) RenameApplication(oldName, newName string) error {
 	return err
 }
 
-func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, showLogs bool) error {
+func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, envs []string, showLogs bool) error {
 	args := []string{"push", appName, "-f", manifestPath, "--no-start"}
 
 	if appPath != "" {
@@ -280,6 +294,11 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 	_, err := repo.conn.CliCommand(args...)
 	if err != nil {
 		return err
+	}
+
+	envErr := repo.SetEnvironmentVariables(appName, envs)
+	if envErr != nil {
+		return envErr
 	}
 
 	if showLogs {
@@ -324,6 +343,23 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 		return err
 	}
 
+	return nil
+}
+
+//SetEnvironmentVariable set passed envs with set-env to set variables dynamically
+func (repo *ApplicationRepo) SetEnvironmentVariables(appName string, envs []string) error {
+	varArgs := []string{"set-env", appName}
+	//set all variables passed by --var
+	for _, envPair := range envs {
+		tmpArgs := make([]string, len(varArgs))
+		copy(tmpArgs, varArgs)
+		newArgs := strings.Split(envPair, "=")
+		tmpArgs = append(tmpArgs, newArgs...)
+		_, err := repo.conn.CliCommand(tmpArgs...)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
