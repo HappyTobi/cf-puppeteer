@@ -153,7 +153,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 0,
-			Build: 11,
+			Build: 12,
 		},
 		Commands: []plugin.Command{
 			{

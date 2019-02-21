@@ -11,7 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add static page with plugin documentation
 - code cleanup
 
-## [0.0.12] - Unreleased
+## [1.0.0] - Unreleased
+### Added
+
+### Changed
+- cleanup code
+
+## [0.0.12] - 2019-02-21
 ### Changed
 - Change buildscript to generate sha1 sums for each file
 
