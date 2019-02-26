@@ -161,7 +161,19 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 				Name:     "zero-downtime-push",
 				HelpText: "Perform a zero-downtime push of an application over the top of an old one",
 				UsageDetails: plugin.Usage{
-					Usage: "$ cf zero-downtime-push application-to-replace \\ \n \t-f path/to/new_manifest.yml \\ \n \t-p path/to/new/path",
+					Usage: "$ cf zero-downtime-push [<App-Name>] -f <Manifest> [options]",
+					Options: map[string]string{
+						"-f":                "path to application manifest",
+						"-p":                "path to application files",
+						"-s":                "name of the stack to use",
+						"-t":                "push timeout (in secounds)",
+						"-show-app-log":     "tail and show application log during application start",
+						"-env":              "add environment key value pairs dynamic; can specity multiple times",
+						"-var":              "variable key value pair for variable substitution; can specify multiple times",
+						"-vars-file":        "Path to a variable substitution file for manifest; can specify multiple times",
+						"--docker-image":    "docker-image to be used (e.g. user/docker-image-name)",
+						"--docker-username": "repository username; used with password from environment variable CF_DOCKER_PASSWORD",
+					},
 				},
 			},
 		},
@@ -196,6 +208,10 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
 	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
 
+	dockerImage := flags.String("docker-image", "", "url to docker image")
+	dockerUserName := flags.String("docker-username", "", "pass docker username if image came from private repository")
+	dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
+
 	//default start index of parameters is 2 because 1 is the appName
 	argumentStartIndex := 2
 	//if first argument is not the appName we have to read the appName out of the manifest
@@ -218,6 +234,10 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	manifest, err := manifest.ParseManifest(*manifestPath)
 	if err != nil {
 		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrManifest
+	}
+
+	if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
+		//TODO use dockerImage stuff and pass to push command
 	}
 
 	//set timeout
