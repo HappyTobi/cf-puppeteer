@@ -161,7 +161,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 				Name:     "zero-downtime-push",
 				HelpText: "Perform a zero-downtime push of an application over the top of an old one",
 				UsageDetails: plugin.Usage{
-					Usage: "$ cf zero-downtime-push [<App-Name>] -f <Manifest> [options]",
+					Usage: "$ cf zero-downtime-push [<App-Name>] -f <Manifest.yml> [options]",
 					Options: map[string]string{
 						"-f":                "path to application manifest",
 						"-p":                "path to application files",
