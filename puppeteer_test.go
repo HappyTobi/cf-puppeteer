@@ -32,7 +32,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-var", "baz=bob",
 				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
-				"-env", "baz=bob",
+				"-env", "baz=bob=true",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -43,7 +43,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(stackName).To(Equal("stack-name"))
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
-		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
 		Expect(showLogs).To(Equal(false))
 		Expect(timeout).To(Equal(120))
 	})
@@ -328,10 +328,10 @@ var _ = Describe("ApplicationRepo", func() {
 		})
 
 		It("pushes an application with variables", func() {
-			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "", "", 60, []string{"foo=bar", "baz=bob"}, []string{"vars.yml"}, []string{"foo=bar"}, false)
+			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "", "", 60, []string{"foo=bar", "baz=bob"}, []string{"vars.yml"}, []string{"foo=bar", "bar=foo=true"}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConn.CliCommandCallCount()).To(Equal(3))
+			Expect(cliConn.CliCommandCallCount()).To(Equal(4))
 			args := cliConn.CliCommandArgsForCall(0)
 			Expect(args).To(Equal([]string{
 				"push",
@@ -342,6 +342,22 @@ var _ = Describe("ApplicationRepo", func() {
 				"--var", "foo=bar",
 				"--var", "baz=bob",
 				"--vars-file", "vars.yml",
+			}))
+
+			args2 := cliConn.CliCommandArgsForCall(1)
+			Expect(args2).To(Equal([]string{
+				"set-env",
+				"appName",
+				"foo",
+				"bar",
+			}))
+
+			args3 := cliConn.CliCommandArgsForCall(2)
+			Expect(args3).To(Equal([]string{
+				"set-env",
+				"appName",
+				"bar",
+				"foo=true",
 			}))
 		})
 

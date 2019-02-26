@@ -154,7 +154,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 0,
-			Build: 12,
+			Build: 13,
 		},
 		Commands: []plugin.Command{
 			{
@@ -353,7 +353,7 @@ func (repo *ApplicationRepo) SetEnvironmentVariables(appName string, envs []stri
 	for _, envPair := range envs {
 		tmpArgs := make([]string, len(varArgs))
 		copy(tmpArgs, varArgs)
-		newArgs := strings.Split(envPair, "=")
+		newArgs := strings.SplitN(envPair, "=", 2)
 		tmpArgs = append(tmpArgs, newArgs...)
 		_, err := repo.conn.CliCommand(tmpArgs...)
 		if err != nil {

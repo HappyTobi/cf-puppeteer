@@ -11,8 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add static page with plugin documentation
 - code cleanup
 
-## [1.0.0] - Unreleased
+## [0.0.13] - Unreleased
 ### Added
+
+### Fixed
+- Env issue when passing key value pair
 
 ### Changed
 - cleanup code
