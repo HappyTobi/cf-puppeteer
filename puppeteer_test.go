@@ -21,7 +21,7 @@ func TestPuppeteer(t *testing.T) {
 
 var _ = Describe("Flag Parsing", func() {
 	It("parses args without appName", func() {
-		appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
@@ -33,6 +33,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob=true",
+				"--vendor-option", "stop",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -44,12 +45,13 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
+		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
 		Expect(timeout).To(Equal(120))
 	})
 
 	It("parses a all args without timeout", func() {
-		appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -61,6 +63,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
+				"--vendor-option", "stop",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -72,12 +75,13 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
 		Expect(timeout).To(Equal(2))
 	})
 
 	It("parses a all args without timeout and no manifest timeout", func() {
-		appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -89,6 +93,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
+				"--vendor-option", "stop",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -100,12 +105,13 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
 		Expect(timeout).To(Equal(60))
 	})
 
 	It("parses a complete set of args", func() {
-		appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -129,12 +135,13 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(vendorAppOption).Should(Equal("delete"))
 		Expect(showLogs).To(Equal(false))
 		Expect(timeout).To(Equal(120))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
-		_, _, _, _, _, _, _, _, _, err := ParseArgs(
+		_, _, _, _, _, _, _, _, _, _, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
@@ -152,7 +159,7 @@ var _ = Describe("Flag Parsing", func() {
 	})
 
 	It("requires a manifest", func() {
-		_, _, _, _, _, _, _, _, _, err := ParseArgs(
+		_, _, _, _, _, _, _, _, _, _, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",

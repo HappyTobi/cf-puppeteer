@@ -38,7 +38,7 @@ func venerableAppName(appName string) string {
 	return fmt.Sprintf("%s-venerable", appName)
 }
 
-func getActionsForApp(appRepo *ApplicationRepo, appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, envs []string, showLogs bool) []rewind.Action {
+func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath string, appPath string, stackName string, timeout int, vendorAppOption string, vars []string, varsFiles []string, envs []string, showLogs bool) []rewind.Action {
 	venName := venerableAppName(appName)
 	var err error
 	var curApp, venApp *AppEntity
@@ -120,6 +120,11 @@ func getActionsForApp(appRepo *ApplicationRepo, appName, manifestPath, appPath, 
 				if !haveVenToCleanup {
 					return nil
 				}
+
+				//if vendorAppOpton was set to stop
+				if strings.ToLower(vendorAppOption) == "stop" {
+					return appRepo.StopApplication(venName)
+				}
 				return appRepo.DeleteApplication(venName)
 			},
 		},
@@ -133,11 +138,11 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	appRepo := NewApplicationRepo(cliConnection)
-	appName, manifestPath, appPath, timeout, stackName, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
+	appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, envs, showLogs),
+		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, stackName, timeout, vendorAppOption, vars, varsFiles, envs, showLogs),
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
@@ -173,6 +178,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-vars-file":        "Path to a variable substitution file for manifest; can specify multiple times",
 						"--docker-image":    "docker-image to be used (e.g. user/docker-image-name)",
 						"--docker-username": "repository username; used with password from environment variable CF_DOCKER_PASSWORD",
+						"--vendor-option":   "option to delete or stop vendor application - default is delete",
 					},
 				},
 			},
@@ -192,7 +198,7 @@ func (s *StringSlice) Set(value string) error {
 }
 
 //ParseArgs parse all cmd arguments
-func ParseArgs(args []string) (string, string, string, int, string, []string, []string, []string, bool, error) {
+func ParseArgs(args []string) (string, string, string, int, string, string, []string, []string, []string, bool, error) {
 	flags := flag.NewFlagSet("zero-downtime-push", flag.ContinueOnError)
 
 	var envs StringSlice
@@ -202,8 +208,9 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	manifestPath := flags.String("f", "", "path to an application manifest")
 	appPath := flags.String("p", "", "path to application files")
 	stackName := flags.String("s", "", "name of the stack to use")
-	timeout := flags.Int("t", 0, "push timout in secounds defualt 60s")
+	timeout := flags.Int("t", 0, "push timout in secounds default 60s")
 	showLogs := flags.Bool("show-app-log", false, "tail and show application log during application start")
+	vendorAppOption := flags.String("vendor-option", "delete", "option to delete or stop vendor application - default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specity multiple times")
 	flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
 	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
@@ -223,17 +230,17 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 
 	err := flags.Parse(args[argumentStartIndex:])
 	if err != nil {
-		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, err
+		return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, err
 	}
 
 	if *manifestPath == "" {
-		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrNoManifest
+		return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, ErrNoManifest
 	}
 
 	//parse manifest
-	manifest, err := manifest.ParseManifest(*manifestPath)
+	parsedManifest, err := manifest.Parse(*manifestPath)
 	if err != nil {
-		return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrManifest
+		return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, ErrManifest
 	}
 
 	if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
@@ -241,7 +248,7 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	}
 
 	//set timeout
-	manifestTimeout := manifest.ApplicationManifests[0].Timeout
+	manifestTimeout := parsedManifest.ApplicationManifests[0].Timeout
 	if manifestTimeout > 0 && *timeout <= 0 {
 		*timeout = manifestTimeout
 	} else if manifestTimeout <= 0 && *timeout <= 0 {
@@ -251,7 +258,7 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	//parse first argument as appName
 	appName := args[1]
 	if noAppNameProvided {
-		appName = manifest.ApplicationManifests[0].Name
+		appName = parsedManifest.ApplicationManifests[0].Name
 
 	}
 
@@ -259,12 +266,12 @@ func ParseArgs(args []string) (string, string, string, int, string, []string, []
 	if len(envs) > 0 {
 		for _, envPair := range envs {
 			if strings.Contains(envPair, "=") == false {
-				return "", "", "", *timeout, "", []string{}, []string{}, []string{}, false, ErrWrongEnvFormat
+				return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, ErrWrongEnvFormat
 			}
 		}
 	}
 
-	return appName, *manifestPath, *appPath, *timeout, *stackName, vars, varsFiles, envs, *showLogs, nil
+	return appName, *manifestPath, *appPath, *timeout, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
 }
 
 var (
@@ -285,6 +292,11 @@ func NewApplicationRepo(conn plugin.CliConnection) *ApplicationRepo {
 
 func (repo *ApplicationRepo) RenameApplication(oldName, newName string) error {
 	_, err := repo.conn.CliCommand("rename", oldName, newName)
+	return err
+}
+
+func (repo *ApplicationRepo) StopApplication(appName string) error {
+	_, err := repo.conn.CliCommand("stop", appName)
 	return err
 }
 
@@ -401,7 +413,7 @@ var (
 	ErrAppNotFound = errors.New("application not found")
 )
 
-// GetAppMetadata returns metadata about an app with appName
+//GetAppMetadata
 func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppEntity, error) {
 	space, err := repo.conn.GetCurrentSpace()
 	if err != nil {
