@@ -6,19 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Upcoming features [1.0.0]
 - add argument to cleanup unused enviroment variables
-- add argument to stop old service only instead of deletion
+- [x] add argument to stop old service only instead of deletion
 - log deployment time 
-- add static page with plugin documentation
-- code cleanup
+- [-] add static page with plugin documentation
+- [-] code cleanup
 
 ## [0.0.13] - Unreleased
 ### Added
+- add argument to stop ol service instance instead of deletion
 
 ### Fixed
 - Env issue when passing key value pair
 
 ### Changed
-- cleanup code
+- cleanup manifest parser
+- add besser documentation
 
 ## [0.0.12] - 2019-02-21
 ### Changed

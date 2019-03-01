@@ -32,9 +32,9 @@ type Manifest struct {
 	ApplicationManifests []Application `yaml:"applications"`
 }
 
-// ParseManifest parse application manifest files from provided path and return
+// Parse parse application manifest files from provided path and return
 // (right now) the app name of the first found application.
-func ParseManifest(manifestFilePath string) (manifest Manifest, err error) {
+func Parse(manifestFilePath string) (manifest Manifest, err error) {
 	document, err := loadYmlFile(manifestFilePath)
 
 	if err != nil || document.ApplicationManifests == nil {
