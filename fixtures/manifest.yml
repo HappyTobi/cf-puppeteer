@@ -3,6 +3,8 @@ applications:
   - name: myApp
     memory: 128M
     instances: 1
+    health-check-type: http
+    health-check-http-endpoint: /health
     timeout: 2
     routes:
       - route: route1

@@ -28,19 +28,40 @@ $ cf install-plugin path/to/downloaded/binary
 
 ## usage
 
-```
-$ cf zero-downtime-push application-to-replace \
-    -f path/to/new_manifest.yml \
-    -p path/to/new/path
-    -t 120
-```
-or without application name
+
 ```
 $ cf zero-downtime-push \
     -f path/to/new_manifest.yml \
     -p path/to/new/path
     -t 120
 ```
+
+### passing an application name
+
+To override the application name from the manifest, specify it as command line argument. For example:
+
+```
+$ cf zero-downtime-push application-to-replace \
+    -f path/to/new_manifest.yml \
+    -p path/to/new/path
+    -t 120
+```
+
+### using cf v3-set-health-check
+
+To have more control over the health checks of your application, use the `cf v3-set-health-check`. For example:
+
+```
+$ cf zero-downtime-push application-to-replace \
+    -f path/to/new_manifest.yml \
+    -p path/to/new/path
+    -t 120
+	--health-check-type http
+	--health-check-http-endpoint /health
+	--invocation-timeout 10
+```
+
+
 
 ## method
 

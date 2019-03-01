@@ -21,7 +21,7 @@ func TestPuppeteer(t *testing.T) {
 
 var _ = Describe("Flag Parsing", func() {
 	It("parses args without appName", func() {
-		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
@@ -34,6 +34,8 @@ var _ = Describe("Flag Parsing", func() {
 				"-env", "foo=bar",
 				"-env", "baz=bob=true",
 				"--vendor-option", "stop",
+				"--invocation-timeout", "2211",
+				"--process", "process-name",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -47,11 +49,15 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
 		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(120))
+		Expect(invocationTimeout).To(Equal(2211))
+		Expect(process).To(Equal("process-name"))
 	})
 
 	It("parses a all args without timeout", func() {
-		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -77,11 +83,15 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(2))
+		Expect(invocationTimeout).To(Equal(-1))
+		Expect(process).To(Equal(""))
 	})
 
 	It("parses a all args without timeout and no manifest timeout", func() {
-		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -107,11 +117,15 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(60))
+		Expect(invocationTimeout).To(Equal(-1))
+		Expect(process).To(Equal(""))
 	})
 
 	It("parses a complete set of args", func() {
-		appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -124,6 +138,8 @@ var _ = Describe("Flag Parsing", func() {
 				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
+				"--invocation-timeout", "2211",
+				"--process", "process-name",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -137,11 +153,15 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("delete"))
 		Expect(showLogs).To(Equal(false))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(120))
+		Expect(invocationTimeout).To(Equal(2211))
+		Expect(process).To(Equal("process-name"))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
-		_, _, _, _, _, _, _, _, _, _, err := ParseArgs(
+		_, _, _, _, _, _, _, _, _, _, _, _, _, _, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
@@ -153,13 +173,15 @@ var _ = Describe("Flag Parsing", func() {
 				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz bob",
+				"--invocation-timeout", "2211",
+				"--process", "process-name",
 			},
 		)
 		Expect(err).To(MatchError(ErrWrongEnvFormat))
 	})
 
 	It("requires a manifest", func() {
-		_, _, _, _, _, _, _, _, _, _, err := ParseArgs(
+		_, _, _, _, _, _, _, _, _, _, _, _, _, _, err := ParseArgs(
 			[]string{
 				"zero-downtime-push",
 				"appname",
@@ -290,7 +312,7 @@ var _ = Describe("ApplicationRepo", func() {
 			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "/path/to/the/app", "", 60, []string{}, []string{}, []string{}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConn.CliCommandCallCount()).To(Equal(2))
+			Expect(cliConn.CliCommandCallCount()).To(Equal(1))
 			args := cliConn.CliCommandArgsForCall(0)
 			Expect(args).To(Equal([]string{
 				"push",
@@ -306,7 +328,7 @@ var _ = Describe("ApplicationRepo", func() {
 			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "", "", 60, []string{}, []string{}, []string{}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConn.CliCommandCallCount()).To(Equal(2))
+			Expect(cliConn.CliCommandCallCount()).To(Equal(1))
 			args := cliConn.CliCommandArgsForCall(0)
 			Expect(args).To(Equal([]string{
 				"push",
@@ -321,7 +343,7 @@ var _ = Describe("ApplicationRepo", func() {
 			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "/path/to/the/app", "stackName", 60, []string{}, []string{}, []string{}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConn.CliCommandCallCount()).To(Equal(2))
+			Expect(cliConn.CliCommandCallCount()).To(Equal(1))
 			args := cliConn.CliCommandArgsForCall(0)
 			Expect(args).To(Equal([]string{
 				"push",
@@ -338,7 +360,7 @@ var _ = Describe("ApplicationRepo", func() {
 			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "", "", 60, []string{"foo=bar", "baz=bob"}, []string{"vars.yml"}, []string{"foo=bar", "bar=foo=true"}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConn.CliCommandCallCount()).To(Equal(4))
+			Expect(cliConn.CliCommandCallCount()).To(Equal(3))
 			args := cliConn.CliCommandArgsForCall(0)
 			Expect(args).To(Equal([]string{
 				"push",
