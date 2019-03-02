@@ -24,7 +24,7 @@ type Application struct {
 	Stack                   string                 `yaml:"stack,omitempty"`
 	Timeout                 int                    `yaml:"timeout,omitempty"`
 	HealthCheckType         string                 `yaml:"health-check-type,omitempty"`
-	HealthCheckHTTPEndpoint string                 `yaml:"health-check-http-endpoint,omitempty"`
+	HealthCheckHttpEndpoint string                 `yaml:"health-check-http-endpoint,omitempty"`
 }
 
 // Manifest struct represents the application manifest.

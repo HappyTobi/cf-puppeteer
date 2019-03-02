@@ -38,7 +38,7 @@ func venerableAppName(appName string) string {
 	return fmt.Sprintf("%s-venerable", appName)
 }
 
-func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath string, appPath string, stackName string, timeout int, vendorAppOption string, vars []string, varsFiles []string, envs []string, showLogs bool) []rewind.Action {
+func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath string, appPath string, healthCheckType string, healthCheckHttpEndpoint string, timeout int, invocationTimeout int, process string, stackName string, vendorAppOption string, vars []string, varsFiles []string, envs []string, showLogs bool) []rewind.Action {
 	venName := venerableAppName(appName)
 	var err error
 	var curApp, venApp *AppEntity
@@ -102,6 +102,17 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 			Forward: func() error {
 				return appRepo.PushApplication(appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, envs, showLogs)
 			},
+		},
+		{
+			Forward: func() error {
+				return appRepo.SetHealthCheckV3(appName, healthCheckType, healthCheckHttpEndpoint, invocationTimeout, process)
+			},
+		},
+		// start
+		{
+			Forward: func() error {
+				return appRepo.StartApplication(appName)
+			},
 			ReversePrevious: func() error {
 				if !haveVenToCleanup {
 					return nil
@@ -121,7 +132,7 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 					return nil
 				}
 
-				//if vendorAppOpton was set to stop
+				//if vendorAppOption was set to stop
 				if strings.ToLower(vendorAppOption) == "stop" {
 					return appRepo.StopApplication(venName)
 				}
@@ -138,11 +149,11 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	appRepo := NewApplicationRepo(cliConnection)
-	appName, manifestPath, appPath, timeout, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
+	appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, stackName, timeout, vendorAppOption, vars, varsFiles, envs, showLogs),
+		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs),
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
@@ -168,17 +179,21 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 				UsageDetails: plugin.Usage{
 					Usage: "$ cf zero-downtime-push [<App-Name>] -f <Manifest.yml> [options]",
 					Options: map[string]string{
-						"-f":                "path to application manifest",
-						"-p":                "path to application files",
-						"-s":                "name of the stack to use",
-						"-t":                "push timeout (in secounds)",
-						"-show-app-log":     "tail and show application log during application start",
-						"-env":              "add environment key value pairs dynamic; can specity multiple times",
-						"-var":              "variable key value pair for variable substitution; can specify multiple times",
-						"-vars-file":        "Path to a variable substitution file for manifest; can specify multiple times",
-						"--docker-image":    "docker-image to be used (e.g. user/docker-image-name)",
-						"--docker-username": "repository username; used with password from environment variable CF_DOCKER_PASSWORD",
-						"--vendor-option":   "option to delete or stop vendor application - default is delete",
+						"-f":                           "path to application manifest",
+						"-p":                           "path to application files",
+						"-s":                           "name of the stack to use",
+						"-t":                           "push timeout (in secounds)",
+						"-show-app-log":                "tail and show application log during application start",
+						"-env":                         "add environment key value pairs dynamic; can specity multiple times",
+						"-var":                         "variable key value pair for variable substitution; can specify multiple times",
+						"-vars-file":                   "Path to a variable substitution file for manifest; can specify multiple times",
+						"--docker-image":               "docker-image to be used (e.g. user/docker-image-name)",
+						"--docker-username":            "repository username; used with password from environment variable CF_DOCKER_PASSWORD",
+						"--vendor-option":              "option to delete or stop vendor application - default is delete",
+						"--health-check-type":          "type of health check to perform",
+						"--health-check-http-endpoint": "endpoint for the 'http' health check type",
+						"--invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",
+						"--process":                    "application process to update",
 					},
 				},
 			},
@@ -198,7 +213,7 @@ func (s *StringSlice) Set(value string) error {
 }
 
 //ParseArgs parse all cmd arguments
-func ParseArgs(args []string) (string, string, string, int, string, string, []string, []string, []string, bool, error) {
+func ParseArgs(args []string) (string, string, string, string, string, int, int, string, string, string, []string, []string, []string, bool, error) {
 	flags := flag.NewFlagSet("zero-downtime-push", flag.ContinueOnError)
 
 	var envs StringSlice
@@ -208,7 +223,11 @@ func ParseArgs(args []string) (string, string, string, int, string, string, []st
 	manifestPath := flags.String("f", "", "path to an application manifest")
 	appPath := flags.String("p", "", "path to application files")
 	stackName := flags.String("s", "", "name of the stack to use")
-	timeout := flags.Int("t", 0, "push timout in secounds default 60s")
+	healthCheckType := flags.String("health-check-type", "", "type of health check to perform")
+	healthCheckHttpEndpoint := flags.String("health-check-http-endpoint", "", "endpoint for the 'http' health check type")
+	timeout := flags.Int("t", 0, "push timeout in secounds (defaults to 60 seconds)")
+	invocationTimeout := flags.Int("invocation-timeout", -1, "health check invocation timeout in seconds")
+	process := flags.String("process", "", "application process to update")
 	showLogs := flags.Bool("show-app-log", false, "tail and show application log during application start")
 	vendorAppOption := flags.String("vendor-option", "delete", "option to delete or stop vendor application - default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specity multiple times")
@@ -230,17 +249,17 @@ func ParseArgs(args []string) (string, string, string, int, string, string, []st
 
 	err := flags.Parse(args[argumentStartIndex:])
 	if err != nil {
-		return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, err
+		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, err
 	}
 
 	if *manifestPath == "" {
-		return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, ErrNoManifest
+		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrNoManifest
 	}
 
 	//parse manifest
 	parsedManifest, err := manifest.Parse(*manifestPath)
 	if err != nil {
-		return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, ErrManifest
+		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrManifest
 	}
 
 	if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
@@ -259,19 +278,26 @@ func ParseArgs(args []string) (string, string, string, int, string, string, []st
 	appName := args[1]
 	if noAppNameProvided {
 		appName = parsedManifest.ApplicationManifests[0].Name
+	}
 
+	// get health check settings from manifest if nothing else was specified as command line argument
+	if *healthCheckType == "" {
+		*healthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
+	}
+	if *healthCheckHttpEndpoint == "" {
+		*healthCheckHttpEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHttpEndpoint
 	}
 
 	//validate envs format
 	if len(envs) > 0 {
 		for _, envPair := range envs {
 			if strings.Contains(envPair, "=") == false {
-				return "", "", "", *timeout, "", "", []string{}, []string{}, []string{}, false, ErrWrongEnvFormat
+				return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrWrongEnvFormat
 			}
 		}
 	}
 
-	return appName, *manifestPath, *appPath, *timeout, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
+	return appName, *manifestPath, *appPath, *healthCheckType, *healthCheckHttpEndpoint, *timeout, *invocationTimeout, *process, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
 }
 
 var (
@@ -300,6 +326,38 @@ func (repo *ApplicationRepo) StopApplication(appName string) error {
 	return err
 }
 
+func (repo *ApplicationRepo) StartApplication(appName string) error {
+	_, err := repo.conn.CliCommand("start", appName)
+	return err
+}
+
+func (repo *ApplicationRepo) SetHealthCheckV3(appName string, healthCheckType string, healthCheckHttpEndpoint string, invocationTimeout int, process string) error {
+	// Without a health check type, the CF command is not valid. Therefore, leave if the type is not specified
+	if healthCheckType == "" {
+		return nil
+	}
+
+	args := []string{"v3-set-health-check", appName, healthCheckType}
+
+	if healthCheckType == "http" && healthCheckHttpEndpoint != "" {
+		args = append(args, "--endpoint", healthCheckHttpEndpoint)
+	}
+
+	if invocationTimeout >= 0 {
+		invocationTimeoutS := strconv.Itoa(invocationTimeout)
+		args = append(args, "--invocation-timeout", invocationTimeoutS)
+	}
+
+	if process != "" {
+		args = append(args, "--process", process)
+	}
+
+	_, err := repo.conn.CliCommand(args...)
+	return err
+}
+
+// PushApplication executes the Cloud Foundry push command for the specified application.
+// It returns any error that prevents a successful completion of the operation.
 func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, envs []string, showLogs bool) error {
 	args := []string{"push", appName, "-f", manifestPath, "--no-start"}
 
@@ -311,7 +369,7 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 		args = append(args, "-s", stackName)
 	}
 
-	/* always append timout */
+	/* always append timeout */
 	timeoutS := strconv.Itoa(timeout)
 	args = append(args, "-t", timeoutS)
 
@@ -368,11 +426,6 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 				}
 			}
 		}()
-	}
-
-	_, err = repo.conn.CliCommand("start", appName)
-	if err != nil {
-		return err
 	}
 
 	return nil
