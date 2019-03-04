@@ -164,6 +164,7 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	_ = appRepo.ListApplications()
 }
 
+// GetMetadata get plugin metadata
 func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "cf-puppeteer",
@@ -187,8 +188,6 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-env":                         "add environment key value pairs dynamic; can specity multiple times",
 						"-var":                         "variable key value pair for variable substitution; can specify multiple times",
 						"-vars-file":                   "Path to a variable substitution file for manifest; can specify multiple times",
-						"--docker-image":               "docker-image to be used (e.g. user/docker-image-name)",
-						"--docker-username":            "repository username; used with password from environment variable CF_DOCKER_PASSWORD",
 						"--vendor-option":              "option to delete or stop vendor application - default is delete",
 						"--health-check-type":          "type of health check to perform",
 						"--health-check-http-endpoint": "endpoint for the 'http' health check type",

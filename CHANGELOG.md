@@ -10,17 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - log deployment time 
 - [-] add static page with plugin documentation
 - [-] code cleanup
+- fix all linter problems
 
 ## [0.0.13] - Unreleased
 ### Added
-- add argument to stop ol service instance instead of deletion
+- add argument to stop old service instance instead of deletion
+- add argument to set health check invocation timeout
 
 ### Fixed
-- Env issue when passing key value pair
+- dynamic env issue when passing key value pairs
 
 ### Changed
 - cleanup manifest parser
-- add besser documentation
+- add better documentation
 
 ## [0.0.12] - 2019-02-21
 ### Changed
