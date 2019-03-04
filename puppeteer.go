@@ -223,7 +223,7 @@ func ParseArgs(args []string) (string, string, string, string, string, int, int,
 	appPath := flags.String("p", "", "path to application files")
 	stackName := flags.String("s", "", "name of the stack to use")
 	healthCheckType := flags.String("health-check-type", "", "type of health check to perform")
-	healthCheckHttpEndpoint := flags.String("health-check-http-endpoint", "", "endpoint for the 'http' health check type")
+	healthCheckHTTPEndpoint := flags.String("health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	timeout := flags.Int("t", 0, "push timeout in secounds (defaults to 60 seconds)")
 	invocationTimeout := flags.Int("invocation-timeout", -1, "health check invocation timeout in seconds")
 	process := flags.String("process", "", "application process to update")
@@ -283,8 +283,8 @@ func ParseArgs(args []string) (string, string, string, string, string, int, int,
 	if *healthCheckType == "" {
 		*healthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
 	}
-	if *healthCheckHttpEndpoint == "" {
-		*healthCheckHttpEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHttpEndpoint
+	if *healthCheckHTTPEndpoint == "" {
+		*healthCheckHTTPEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHttpEndpoint
 	}
 
 	//validate envs format
@@ -296,12 +296,15 @@ func ParseArgs(args []string) (string, string, string, string, string, int, int,
 		}
 	}
 
-	return appName, *manifestPath, *appPath, *healthCheckType, *healthCheckHttpEndpoint, *timeout, *invocationTimeout, *process, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
+	return appName, *manifestPath, *appPath, *healthCheckType, *healthCheckHTTPEndpoint, *timeout, *invocationTimeout, *process, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
 }
 
 var (
-	ErrNoManifest     = errors.New("a manifest is required to push this application")
-	ErrManifest       = errors.New("could not parse manifest")
+	//ErrNoManifest error when manifes on push application was not found
+	ErrNoManifest = errors.New("a manifest is required to push this application")
+	//ErrManifest error when manifes could not be parsed
+	ErrManifest = errors.New("could not parse manifest")
+	//ErrWrongEnvFormat error when env files was not in right format
 	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
 )
 
