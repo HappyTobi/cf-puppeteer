@@ -149,11 +149,11 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	appRepo := NewApplicationRepo(cliConnection)
-	appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
+	appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs),
+		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs),
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
@@ -237,6 +237,11 @@ func ParseArgs(args []string) (string, string, string, string, string, int, int,
 	dockerUserName := flags.String("docker-username", "", "pass docker username if image came from private repository")
 	dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
 
+	//first check if argument was passed
+	if len(args) < 2 {
+		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrNoArgument
+	}
+
 	//default start index of parameters is 2 because 1 is the appName
 	argumentStartIndex := 2
 	//if first argument is not the appName we have to read the appName out of the manifest
@@ -300,6 +305,8 @@ func ParseArgs(args []string) (string, string, string, string, string, int, int,
 }
 
 var (
+	//ErrNoArgument error when zero-downtime-push without a argument called
+	ErrNoArgument = errors.New("argument musst be passed to zero-downtime-push")
 	//ErrNoManifest error when manifes on push application was not found
 	ErrNoManifest = errors.New("a manifest is required to push this application")
 	//ErrManifest error when manifes could not be parsed
