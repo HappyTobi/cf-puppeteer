@@ -11,14 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [-] add static page with plugin documentation
 - [-] code cleanup
 - fix all linter problems
+- sorted options
+- colorized logging ("code.cloudfoundry.org/cli/cf/terminal")
 
 ## [0.0.13] - Unreleased
 ### Added
 - add argument to stop old service instance instead of deletion
-- add argument to set health check invocation timeout
+- add argument to set health check invocation timeout (v3)
 
 ### Fixed
 - dynamic env issue when passing key value pairs
+- argument handling
 
 ### Changed
 - cleanup manifest parser

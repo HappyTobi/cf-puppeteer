@@ -12,7 +12,7 @@ Project was updated and renamed to cf-puppeteer to differ the two projects.
 to give a better overview what changed, read the [changelog](CHANGELOG.md).
 
 ## version
-The newes version is the 0.0.12 and worked and based on cf-cli version 6.42.0
+The newes version is the 0.0.13 and worked and based on cf-cli version 6.43.0
 
 to get more informations about the newest release see the [Changelog](CHANGELOG.md)
 
@@ -35,6 +35,8 @@ $ cf zero-downtime-push \
     -p path/to/new/path
     -t 120
 ```
+
+To get more information go to [CF-Puppeteer homepage](cf-puppeteer.happytobi.com)
 
 ### passing an application name
 
