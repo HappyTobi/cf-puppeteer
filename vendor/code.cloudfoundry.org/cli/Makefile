@@ -21,12 +21,13 @@ REQUIRED_FOR_STATIC_BINARY_V7 =-a -tags "V7 netgo" -installsuffix netgo
 GOSRC = $(shell find . -name "*.go" ! -name "*test.go" ! -name "*fake*" ! -path "./integration/*")
 UNAME_S := $(shell uname -s)
 
-ginkgo_int = ginkgo -r -randomizeAllSpecs -slowSpecThreshold 60
 
 ifndef TARGET_V7
 TARGET = v6
+ginkgo_int = ginkgo -r -randomizeAllSpecs -slowSpecThreshold 60
 else
 TARGET = v7
+ginkgo_int = ginkgo -r -randomizeAllSpecs -slowSpecThreshold 60 -tags "V7"
 endif
 
 all: test build
@@ -68,32 +69,41 @@ fly-windows-units:
 integration-cleanup:
 	$(PWD)/bin/cleanup-integration
 
+ie: integration-experimental
 integration-experimental: build integration-cleanup integration-shared-experimental integration-experimental-versioned ## Run all experimental integration tests, both versioned and shared across versions
 
+ise: integration-shared-experimental
 integration-experimental-shared: integration-shared-experimental
 integration-shared-experimental: build integration-cleanup ## Run experimental integration tests that are shared between v6 and v7
 	$(ginkgo_int) -nodes $(NODES) integration/shared/experimental
 
+ive: integration-versioned-experimental
 integration-experimental-versioned: integration-versioned-experimental
 integration-versioned-experimental: build integration-cleanup ## Run experimental integration tests that are specific to your CLI version
 	$(ginkgo_int) -nodes $(NODES) integration/$(TARGET)/experimental
 
+ig: integration-global
 integration-global: build integration-cleanup integration-shared-global integration-global-versioned ## Run all unparallelizable integration tests that make cross-cutting changes to their test CF foundation
 
+isg: integration-shared-global
 integration-global-shared: integration-shared-global
 integration-shared-global: build integration-cleanup ## Serially run integration tests that make cross-cutting changes to their test CF foundation and are shared between v6 and v7
 	$(ginkgo_int) integration/shared/global
 
+ivg: integration-versioned-global
 integration-global-versioned: integration-versioned-global
 integration-versioned-global: build integration-cleanup ## Serially run integration tests that make cross-cutting changes to their test CF foundation and are specific to your CLI version
 	$(ginkgo_int) integration/$(TARGET)/global
 
+ii: integration-isolated
 integration-isolated: build integration-cleanup integration-shared-isolated integration-isolated-versioned ## Run all parallel-enabled integration tests, both versioned and shared across versions
 
+isi: integration-shared-isolated
 integration-isolated-shared: integration-shared-isolated
 integration-shared-isolated: build integration-cleanup ## Run all parallel-enabled integration tests that are shared between v6 and v7
 	$(ginkgo_int) -nodes $(NODES) integration/shared/isolated
 
+ivi: integration-versioned-isolated
 integration-isolated-versioned: integration-versioned-isolated
 integration-versioned-isolated: build integration-cleanup ## Run all parallel-enabled integration tests, both versioned and shared across versions
 	$(ginkgo_int) -nodes $(NODES) integration/$(TARGET)/isolated
@@ -106,6 +116,7 @@ integration-push: build integration-cleanup  ## Run all push-related integration
 
 integration-tests: build integration-cleanup integration-isolated integration-push integration-global ## Run all isolated, push, and global integration tests
 
+i: integration-tests-full
 integration-full-tests: integration-tests-full
 integration-tests-full: build integration-cleanup integration-isolated integration-push integration-experimental integration-plugin integration-global  ## Run all isolated, push, experimental, plugin, and global integration tests
 
@@ -229,4 +240,4 @@ vet: ## Run go vet
 .PHONY: help
 
 help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-34s\033[0m %s\n", $$1, $$2}'

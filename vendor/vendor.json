@@ -39,12 +39,12 @@
 			"revisionTime": "2019-01-03T19:51:35Z"
 		},
 		{
-			"checksumSHA1": "MSXiqobB74VUKdJ9ZnXhZxdFiMQ=",
+			"checksumSHA1": "KthxN+vDsaGC1YKNk0Uk18zNb9I=",
 			"path": "code.cloudfoundry.org/cli",
-			"revision": "4947847c552d8aa967d3ad9ed720d74d42f674d3",
-			"revisionTime": "2019-01-11T23:51:09Z",
-			"version": "v6.42.0",
-			"versionExact": "v6.42.0"
+			"revision": "815ea2f3d41a98d7a7e4e520509160ba8b355725",
+			"revisionTime": "2019-02-20T18:08:57Z",
+			"version": "=v6.43.0",
+			"versionExact": "v6.43.0"
 		},
 		{
 			"checksumSHA1": "Cke0PBOH+q5gK6Gu3l+bOVNC+gg=",
