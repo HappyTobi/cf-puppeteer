@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"code.cloudfoundry.org/cli/plugin/pluginfakes"
@@ -20,9 +21,19 @@ func TestPuppeteer(t *testing.T) {
 }
 
 var _ = Describe("Flag Parsing", func() {
+	var (
+		cliConn *pluginfakes.FakeCliConnection
+		repo    *ApplicationRepo
+	)
+
+	BeforeEach(func() {
+		cliConn = &pluginfakes.FakeCliConnection{}
+		repo = NewApplicationRepo(cliConn)
+	})
+
 	It("parses args without appName", func() {
 		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
-			[]string{
+			repo, []string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
 				"-p", "app-path",
@@ -49,16 +60,16 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
 		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(120))
 		Expect(invocationTimeout).To(Equal(2211))
 		Expect(process).To(Equal("process-name"))
+		Expect(healthCheckType).To(Equal(""))
+		Expect(healthCheckHttpEndpoint).To(Equal(""))
 	})
 
 	It("parses a all args without timeout", func() {
 		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
-			[]string{
+			repo, []string{
 				"zero-downtime-push",
 				"appname",
 				"-f", "./fixtures/manifest.yml",
@@ -83,16 +94,16 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(2))
 		Expect(invocationTimeout).To(Equal(-1))
 		Expect(process).To(Equal(""))
+		Expect(healthCheckType).To(Equal(""))
+		Expect(healthCheckHttpEndpoint).To(Equal(""))
 	})
 
 	It("parses a all args without timeout and no manifest timeout", func() {
 		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
-			[]string{
+			repo, []string{
 				"zero-downtime-push",
 				"appname",
 				"-f", "./fixtures/multiManifest.yml",
@@ -117,16 +128,16 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("stop"))
 		Expect(showLogs).To(Equal(false))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(60))
 		Expect(invocationTimeout).To(Equal(-1))
 		Expect(process).To(Equal(""))
+		Expect(healthCheckType).To(Equal(""))
+		Expect(healthCheckHttpEndpoint).To(Equal(""))
 	})
 
 	It("parses a complete set of args", func() {
 		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
-			[]string{
+			repo, []string{
 				"zero-downtime-push",
 				"appname",
 				"-f", "./fixtures/manifest.yml",
@@ -153,16 +164,16 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("delete"))
 		Expect(showLogs).To(Equal(false))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 		Expect(timeout).To(Equal(120))
 		Expect(invocationTimeout).To(Equal(2211))
 		Expect(process).To(Equal("process-name"))
+		Expect(healthCheckType).To(Equal(""))
+		Expect(healthCheckHttpEndpoint).To(Equal(""))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
 		_, _, _, _, _, _, _, _, _, _, _, _, _, _, err := ParseArgs(
-			[]string{
+			repo, []string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
 				"-p", "app-path",
@@ -182,13 +193,179 @@ var _ = Describe("Flag Parsing", func() {
 
 	It("requires a manifest", func() {
 		_, _, _, _, _, _, _, _, _, _, _, _, _, _, err := ParseArgs(
-			[]string{
+			repo, []string{
 				"zero-downtime-push",
 				"appname",
 				"-p", "app-path",
 			},
 		)
 		Expect(err).To(MatchError(ErrNoManifest))
+	})
+})
+
+var _ = Describe("CheckAllV3Commands", func() {
+	var (
+		cliConn *pluginfakes.FakeCliConnection
+		repo    *ApplicationRepo
+	)
+
+	BeforeEach(func() {
+		cliConn = &pluginfakes.FakeCliConnection{}
+		repo = NewApplicationRepo(cliConn)
+	})
+
+	Describe("checkAPIV3", func() {
+		It("available CfsV3Api", func() {
+			response := []string{
+				`{}`,
+			}
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			err := repo.CheckAPIV3()
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3", "-X", "GET"}))
+
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("not available CfV3Api", func() {
+			response := []string{
+				`{
+					"description": "Unknown request",
+					"error_code": "CF-NotFound",
+					"code": 10000
+				 }`,
+			}
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+
+			err := repo.CheckAPIV3()
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3", "-X", "GET"}))
+
+			Expect(err).To(MatchError("cf api v3 is not available"))
+		})
+
+		It("check application process web informations", func() {
+			response := []string{
+				`{
+					"guid": "999",
+					"type": "web",
+					"command": "helloWorld=comman",
+					"instances": 1,
+					"memory_in_mb": 128
+					}`,
+			}
+
+			appGUID := "999"
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			applicationProcessesEntityV3, err := repo.GetApplicationProcessWebInformation(appGUID)
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3/apps/999/processes/web", "-X", "GET"}))
+
+			Expect(applicationProcessesEntityV3).ToNot(BeNil())
+			Expect(applicationProcessesEntityV3.GUID).To(Equal("999"))
+			Expect(applicationProcessesEntityV3.Command).To(Equal("helloWorld=comman"))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("check application process web informations - app not available", func() {
+			response := []string{
+				`{
+					"errors": []
+					}`,
+			}
+
+			appGUID := "999"
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			_, err := repo.GetApplicationProcessWebInformation(appGUID)
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3/apps/999/processes/web", "-X", "GET"}))
+
+			Expect(err).To(MatchError("application not found"))
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("update application with incovation-timeout", func() {
+			response := []string{
+				`{
+						"command": "JAVA_OPTS=FOOBAR",
+						"created_at": "2019-02-25T14:09:01Z",
+						"disk_in_mb": 1024,
+						"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741",
+						"health_check": {
+							"data": {
+							  "endpoint": "/health",
+							  "invocation_timeout": 60
+							},
+							"type": "http"
+						  }
+					}`,
+			}
+
+			appGUID := "999"
+			command := "JAVA_OPTS=FOOBAR"
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+
+			applicationEntity := ApplicationEntityV3{}
+			applicationEntity.Command = command
+			applicationEntity.HealthCheck.Data.Endpoint = "/health"
+			applicationEntity.HealthCheck.Data.InvocationTimeout = 60
+			applicationEntity.HealthCheck.HealthCheckType = "http"
+
+			err := repo.UpdateApplicationProcessWebInformation(appGUID, applicationEntity)
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			fmt.Printf("%v", args)
+			Expect(args).To(Equal([]string{"curl", "/v3/processes/999", "-X", "PATCH", "-H", "Content-type: application/json", "-d", "{\"command\":\"JAVA_OPTS=FOOBAR\",\"health_check\":{\"data\":{\"endpoint\":\"/health\",\"invocation_timeout\":60},\"type\":\"http\"}}"}))
+
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("update application with process setting", func() {
+			response := []string{
+				`{
+						"command": "JAVA_OPTS=FOOBAR",
+						"created_at": "2019-02-25T14:09:01Z",
+						"disk_in_mb": 1024,
+						"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741",
+						"health_check": {
+							"type": "process"
+						  },
+						"type": "web"
+					}`,
+			}
+
+			appGUID := "999"
+			command := "JAVA_OPTS=FOOBAR"
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+
+			applicationEntity := ApplicationEntityV3{}
+			applicationEntity.Command = command
+			applicationEntity.HealthCheck.HealthCheckType = "process"
+			applicationEntity.ProcessType = "web"
+
+			err := repo.UpdateApplicationProcessWebInformation(appGUID, applicationEntity)
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3/processes/999", "-X", "PATCH", "-H", "Content-type: application/json", "-d", "{\"command\":\"JAVA_OPTS=FOOBAR\",\"health_check\":{\"data\":{},\"type\":\"process\"},\"type\":\"web\"}"}))
+
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
 
@@ -243,7 +420,17 @@ var _ = Describe("ApplicationRepo", func() {
 
 		It("returns app data if the app exists", func() {
 			response := []string{
-				`{"resources":[{"entity":{"state":"STARTED"}}]}`,
+				`{"resources":[
+					{
+						"metadata": {
+							"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741"
+						 },
+						"entity":
+							{
+								"state":"STARTED"
+							}
+					}]
+				}`,
 			}
 			spaceGUID := "4"
 
@@ -265,11 +452,22 @@ var _ = Describe("ApplicationRepo", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).ToNot(BeNil())
+			Expect(result.Metadata.GUID).To(Equal("6ca30711-72d2-415b-8ed3-6870b7e56741"))
 		})
 
 		It("URL encodes the application name", func() {
 			response := []string{
-				`{"resources":[{"entity":{"state":"STARTED"}}]}`,
+				`{"resources":[
+					{
+						"metadata": {
+							"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741"
+						 },
+						"entity":
+							{
+								"state":"STARTED"
+							}
+					}]
+				}`,
 			}
 			spaceGUID := "4"
 
