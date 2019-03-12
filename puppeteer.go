@@ -19,6 +19,7 @@ import (
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
+	"github.com/happytobi/cf-puppeteer/arguments"
 )
 
 func fatalIf(err error) {
@@ -29,10 +30,14 @@ func fatalIf(err error) {
 }
 
 func main() {
-	plugin.Start(&CfPuppeteerPlugin{})
+	plugin.Start(&CfPuppeteerPlugin{
+		ArgsParser: ptArguments.NewPTArgumentsParser()
+	})
 }
 
-type CfPuppeteerPlugin struct{}
+type CfPuppeteerPlugin struct{
+	ArgsParser: ptArguments.Interface
+}
 
 func venerableAppName(appName string) string {
 	return fmt.Sprintf("%s-venerable", appName)
@@ -153,7 +158,9 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	appRepo := NewApplicationRepo(cliConnection)
-	appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
+	cfInstance := cli.NewCFInstance(cliConnection)
+	PTArguments ptArguments := plugin.ArgsParser.ParseArgs(args);
+	//appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
@@ -173,9 +180,9 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "cf-puppeteer",
 		Version: plugin.VersionType{
-			Major: 0,
+			Major: 1,
 			Minor: 0,
-			Build: 13,
+			Build: 0,
 		},
 		Commands: []plugin.Command{
 			{
