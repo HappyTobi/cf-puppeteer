@@ -186,7 +186,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 					Usage: "$ cf zero-downtime-push [<App-Name>] -f <Manifest.yml> [options]",
 					Options: map[string]string{
 						"f":                           "path to application manifest",
-						"p":                           "path to application files ()",
+						"p":                           "path to application files",
 						"s":                           "name of the stack to use",
 						"t":                           "push timeout (in secounds)",
 						"-show-app-log":               "tail and show application log during application start",
