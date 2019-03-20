@@ -26,7 +26,7 @@ var _ = Describe("Flag Parsing", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		repo = NewApplicationRepo(cliConn)
+		repo = NewApplicationRepo(cliConn, false)
 	})
 
 	It("parses args without appName", func() {
@@ -212,7 +212,7 @@ var _ = Describe("CheckAllV3Commands", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		repo = NewApplicationRepo(cliConn)
+		repo = NewApplicationRepo(cliConn, false)
 	})
 
 	Describe("checkAPIV3", func() {
@@ -375,7 +375,7 @@ var _ = Describe("ApplicationRepo", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		repo = NewApplicationRepo(cliConn)
+		repo = NewApplicationRepo(cliConn, false)
 	})
 
 	Describe("RenameApplication", func() {

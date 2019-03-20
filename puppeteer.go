@@ -153,7 +153,12 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 		return
 	}
 
-	appRepo := NewApplicationRepo(cliConnection)
+	var traceLogging bool
+	if os.Getenv("CF_PUPPETEER_TRACE") == "true" {
+		traceLogging = true
+	}
+
+	appRepo := NewApplicationRepo(cliConnection, traceLogging)
 	appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
 	fatalIf(err)
 
@@ -340,12 +345,14 @@ var (
 )
 
 type ApplicationRepo struct {
-	conn plugin.CliConnection
+	conn         plugin.CliConnection
+	traceLogging bool
 }
 
-func NewApplicationRepo(conn plugin.CliConnection) *ApplicationRepo {
+func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *ApplicationRepo {
 	return &ApplicationRepo{
-		conn: conn,
+		conn:         conn,
+		traceLogging: traceLogging,
 	}
 }
 
@@ -588,8 +595,10 @@ func (repo *ApplicationRepo) GetApplicationProcessWebInformation(appGUID string)
 
 	jsonResp := strings.Join(result, "")
 
-	fmt.Printf("Cloud Foundry API response to GET call on %s:\n", path)
-	PrettyPrintJSON(jsonResp)
+	if repo.traceLogging {
+		fmt.Printf("Cloud Foundry API response to GET call on %s:\n", path)
+		PrettyPrintJSON(jsonResp)
+	}
 
 	var applicationProcessResponse ApplicationProcessesEntityV3
 	err = json.Unmarshal([]byte(jsonResp), &applicationProcessResponse)
@@ -622,8 +631,10 @@ func (repo *ApplicationRepo) UpdateApplicationProcessWebInformation(appGUID stri
 
 	jsonResp := strings.Join(result, "")
 
-	fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
-	PrettyPrintJSON(jsonResp)
+	if repo.traceLogging {
+		fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
+		PrettyPrintJSON(jsonResp)
+	}
 
 	var applicationResponse ApplicationEntityV3
 	err = json.Unmarshal([]byte(jsonResp), &applicationResponse)
