@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -153,11 +154,11 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	appRepo := NewApplicationRepo(cliConnection)
-	appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
+	appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs),
+		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs),
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
@@ -175,7 +176,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 0,
-			Build: 13,
+			Build: 14,
 		},
 		Commands: []plugin.Command{
 			{
@@ -197,6 +198,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-health-check-http-endpoint": "endpoint for the 'http' health check type",
 						"-invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",
 						"-process":                    "application process to update",
+						"v":                           "print additional details on the deployment process",
 					},
 				},
 			},
@@ -215,7 +217,7 @@ func (s *StringSlice) Set(value string) error {
 	return nil
 }
 
-//ParseArgs parse all cmd arguments
+// ParseArgs parses the command line arguments
 func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, string, string, int, int, string, string, string, []string, []string, []string, bool, error) {
 	flags := flag.NewFlagSet("zero-downtime-push", flag.ContinueOnError)
 
@@ -227,7 +229,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 	appPath := flags.String("p", "", "path to application files")
 	stackName := flags.String("s", "", "name of the stack to use")
 	healthCheckType := flags.String("health-check-type", "", "type of health check to perform")
-	healthCheckHTTPEndpoint := flags.String("health-check-http-endpoint", "", "endpoint for the 'http' health check type")
+	healthCheckHttpEndpoint := flags.String("health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	timeout := flags.Int("t", 0, "push timeout in secounds (defaults to 60 seconds)")
 	invocationTimeout := flags.Int("invocation-timeout", -1, "health check invocation timeout in seconds")
 	process := flags.String("process", "", "application process to update")
@@ -238,8 +240,8 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
 
 	/*dockerImage := flags.String("docker-image", "", "url to docker image")
-	dockerUserName := flags.String("docker-username", "", "pass docker username if image came from private repository")
-	dockerPass := os.Getenv("CF_DOCKER_PASSWORD")*/
+	  dockerUserName := flags.String("docker-username", "", "pass docker username if image came from private repository")
+	  dockerPass := os.Getenv("CF_DOCKER_PASSWORD")*/
 
 	//first check if argument was passed
 	if len(args) < 2 {
@@ -271,7 +273,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 	}
 
 	/*if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
-		//TODO use dockerImage stuff and pass to push command
+	    //TODO use dockerImage stuff and pass to push command
 	}*/
 
 	//set timeout
@@ -288,8 +290,15 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 		appName = parsedManifest.ApplicationManifests[0].Name
 	}
 
-	// get health check settings from manifest if nothing else was specified as command line argument
-	if *healthCheckType != "" || *healthCheckHTTPEndpoint != "" || *process != "" {
+	// get health check settings from manifest if nothing else was specified in the command line
+	if *healthCheckType == "" {
+		*healthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
+	}
+	if *healthCheckHttpEndpoint == "" {
+		*healthCheckHttpEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHttpEndpoint
+	}
+
+	if *healthCheckType != "" || *healthCheckHttpEndpoint != "" || *process != "" {
 		err = repo.CheckAPIV3()
 		if err != nil {
 			return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrNoV3ApiAvailable
@@ -307,7 +316,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 		}
 	}
 
-	return appName, *manifestPath, *appPath, *healthCheckType, *healthCheckHTTPEndpoint, *timeout, *invocationTimeout, *process, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
+	return appName, *manifestPath, *appPath, *healthCheckType, *healthCheckHttpEndpoint, *timeout, *invocationTimeout, *process, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
 }
 
 //all custom errors
@@ -355,13 +364,14 @@ func (repo *ApplicationRepo) StartApplication(appName string) error {
 	return err
 }
 
+// SetHealthCheckV3 sets the health check for the specified application using the given health check configuration
 func (repo *ApplicationRepo) SetHealthCheckV3(appName string, GUID string, healthCheckType string, healthCheckHttpEndpoint string, invocationTimeout int, process string) error {
 	// Without a health check type, the CF command is not valid. Therefore, leave if the type is not specified
 	if healthCheckType == "" {
 		return nil
 	}
 
-	//load application by guid
+	// load application by guid
 	appProcesEntity, err := repo.GetApplicationProcessWebInformation(GUID)
 
 	applicationEntity := ApplicationEntityV3{}
@@ -380,7 +390,7 @@ func (repo *ApplicationRepo) SetHealthCheckV3(appName string, GUID string, healt
 	}
 
 	fmt.Println("")
-	fmt.Printf("Update health-check setting for application %v", appName)
+	fmt.Printf("Updating health check setting for application %v", appName)
 	fmt.Println("")
 	err = repo.UpdateApplicationProcessWebInformation(appProcesEntity.GUID, applicationEntity)
 	return err
@@ -461,7 +471,7 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 	return nil
 }
 
-//SetEnvironmentVariable set passed envs with set-env to set variables dynamically
+// SetEnvironmentVariables sets passed envs with set-env to set variables dynamically
 func (repo *ApplicationRepo) SetEnvironmentVariables(appName string, envs []string) error {
 	varArgs := []string{"set-env", appName}
 	//set all variables passed by --var
@@ -503,7 +513,7 @@ type AppResourcesEntity struct {
 	Entity   Entity   `json:"entity"`
 }
 
-//GetAppMetadata
+// GetAppMetadata fetches information on the application specified by appName
 func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppResourcesEntity, error) {
 	space, err := repo.conn.GetCurrentSpace()
 	if err != nil {
@@ -539,11 +549,11 @@ V3 Entities
 
 type ApplicationProcessesEntityV3 struct {
 	GUID    string `json:"guid"`
-	Command string `json:"command"`
+	Command string `json:"command,omitempty"`
 }
 
 type ApplicationEntityV3 struct {
-	Command     string              `json:"command"`
+	Command     string              `json:"command,omitempty"`
 	HealthCheck HealthCheckEntityV3 `json:"health_check"`
 	ProcessType string              `json:"type,omitempty"`
 }
@@ -577,6 +587,10 @@ func (repo *ApplicationRepo) GetApplicationProcessWebInformation(appGUID string)
 	}
 
 	jsonResp := strings.Join(result, "")
+
+	fmt.Printf("Cloud Foundry API response to GET call on %s:\n", path)
+	PrettyPrintJson(jsonResp)
+
 	var applicationProcessResponse ApplicationProcessesEntityV3
 	err = json.Unmarshal([]byte(jsonResp), &applicationProcessResponse)
 	if err != nil {
@@ -590,7 +604,7 @@ func (repo *ApplicationRepo) GetApplicationProcessWebInformation(appGUID string)
 	return &applicationProcessResponse, nil
 }
 
-// UpdateApplicationProcessWebInformation call v3 application to set options
+// UpdateApplicationProcessWebInformation calls v3 application to set options
 // see api documentation http://v3-apidocs.cloudfoundry.org/version/3.67.0/index.html#update-an-app
 func (repo *ApplicationRepo) UpdateApplicationProcessWebInformation(appGUID string, applicationEntity ApplicationEntityV3) error {
 	path := fmt.Sprintf(`/v3/processes/%s`, appGUID)
@@ -608,16 +622,33 @@ func (repo *ApplicationRepo) UpdateApplicationProcessWebInformation(appGUID stri
 
 	jsonResp := strings.Join(result, "")
 
-	var applicationRepsonse ApplicationEntityV3
-	err = json.Unmarshal([]byte(jsonResp), &applicationRepsonse)
+	fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
+	PrettyPrintJson(jsonResp)
+
+	var applicationResponse ApplicationEntityV3
+	err = json.Unmarshal([]byte(jsonResp), &applicationResponse)
 
 	if err != nil {
 		return err
 	}
 
-	if applicationRepsonse.HealthCheck.HealthCheckType != applicationEntity.HealthCheck.HealthCheckType {
+	if applicationResponse.HealthCheck.HealthCheckType != applicationEntity.HealthCheck.HealthCheckType {
 		return ErrInvokationTimeout
 	}
+
+	return nil
+}
+
+// PrettyPrintJson takes the given JSON string, makes it pretty, and prints it out.
+func PrettyPrintJson(jsonUgly string) error {
+	jsonPretty := &bytes.Buffer{}
+	err := json.Indent(jsonPretty, []byte(jsonUgly), "", "    ")
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(jsonPretty.String())
 
 	return nil
 }

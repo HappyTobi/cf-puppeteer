@@ -14,7 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - sorted options
 - colorized logging ("code.cloudfoundry.org/cli/cf/terminal")
 
-## [0.0.13] - Unreleased
+## [0.0.14] - Unreleased
+### Added
+- health check settings (v3): fallback on app manifest for health-check-type and health-check-http-endpoint settings
+- print more information on Cloud Foundry API calls
+
+### Fixed
+- health check settings (v3): support for applications with empty command
+
+### Changed
+- improve documentation
+
+## [0.0.13] - 2019-03-08
 ### Added
 - add argument to stop old service instance instead of deletion
 - add argument to set health check invocation timeout (v3)
