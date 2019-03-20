@@ -6,11 +6,9 @@ import (
 	"testing"
 
 	"code.cloudfoundry.org/cli/plugin/pluginfakes"
-
+	. "github.com/happytobi/cf-puppeteer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/skyfalke/cf-puppeteer"
 
 	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 )
