@@ -17,10 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.14] - Unreleased
 ### Added
 - health check settings (v3): fallback on app manifest for health-check-type and health-check-http-endpoint settings
-- print more information on Cloud Foundry API calls
+- print more information on Cloud Foundry API calls (if env CF_PUPPETEER_TRACE = true)
 
 ### Fixed
 - health check settings (v3): support for applications with empty command
+- go linting issues
 
 ### Changed
 - improve documentation
