@@ -6,11 +6,9 @@ import (
 	"testing"
 
 	"code.cloudfoundry.org/cli/plugin/pluginfakes"
-
+	. "github.com/happytobi/cf-puppeteer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/happytobi/cf-puppeteer"
 
 	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 )
@@ -28,7 +26,7 @@ var _ = Describe("Flag Parsing", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		repo = NewApplicationRepo(cliConn)
+		repo = NewApplicationRepo(cliConn, false)
 	})
 
 	It("parses args without appName", func() {
@@ -63,8 +61,8 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(timeout).To(Equal(120))
 		Expect(invocationTimeout).To(Equal(2211))
 		Expect(process).To(Equal("process-name"))
-		Expect(healthCheckType).To(Equal(""))
-		Expect(healthCheckHttpEndpoint).To(Equal(""))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 	})
 
 	It("parses a all args without timeout", func() {
@@ -97,8 +95,8 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(timeout).To(Equal(2))
 		Expect(invocationTimeout).To(Equal(-1))
 		Expect(process).To(Equal(""))
-		Expect(healthCheckType).To(Equal(""))
-		Expect(healthCheckHttpEndpoint).To(Equal(""))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 	})
 
 	It("parses a all args without timeout and no manifest timeout", func() {
@@ -131,8 +129,8 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(timeout).To(Equal(60))
 		Expect(invocationTimeout).To(Equal(-1))
 		Expect(process).To(Equal(""))
-		Expect(healthCheckType).To(Equal(""))
-		Expect(healthCheckHttpEndpoint).To(Equal(""))
+		Expect(healthCheckType).To(Equal("http"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
 	})
 
 	It("parses a complete set of args", func() {
@@ -151,6 +149,9 @@ var _ = Describe("Flag Parsing", func() {
 				"-env", "baz=bob",
 				"--invocation-timeout", "2211",
 				"--process", "process-name",
+				"--health-check-type", "process",
+				"--health-check-http-endpoint", "/foo/bar",
+				"--show-app-log",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -163,12 +164,12 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(vendorAppOption).Should(Equal("delete"))
-		Expect(showLogs).To(Equal(false))
+		Expect(showLogs).To(Equal(true))
 		Expect(timeout).To(Equal(120))
 		Expect(invocationTimeout).To(Equal(2211))
 		Expect(process).To(Equal("process-name"))
-		Expect(healthCheckType).To(Equal(""))
-		Expect(healthCheckHttpEndpoint).To(Equal(""))
+		Expect(healthCheckType).To(Equal("process"))
+		Expect(healthCheckHttpEndpoint).To(Equal("/foo/bar"))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
@@ -211,7 +212,7 @@ var _ = Describe("CheckAllV3Commands", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		repo = NewApplicationRepo(cliConn)
+		repo = NewApplicationRepo(cliConn, false)
 	})
 
 	Describe("checkAPIV3", func() {
@@ -233,10 +234,10 @@ var _ = Describe("CheckAllV3Commands", func() {
 		It("not available CfV3Api", func() {
 			response := []string{
 				`{
-					"description": "Unknown request",
-					"error_code": "CF-NotFound",
-					"code": 10000
-				 }`,
+                    "description": "Unknown request",
+                    "error_code": "CF-NotFound",
+                    "code": 10000
+                 }`,
 			}
 
 			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
@@ -253,12 +254,12 @@ var _ = Describe("CheckAllV3Commands", func() {
 		It("check application process web informations", func() {
 			response := []string{
 				`{
-					"guid": "999",
-					"type": "web",
-					"command": "helloWorld=comman",
-					"instances": 1,
-					"memory_in_mb": 128
-					}`,
+                    "guid": "999",
+                    "type": "web",
+                    "command": "helloWorld=comman",
+                    "instances": 1,
+                    "memory_in_mb": 128
+                    }`,
 			}
 
 			appGUID := "999"
@@ -279,8 +280,8 @@ var _ = Describe("CheckAllV3Commands", func() {
 		It("check application process web informations - app not available", func() {
 			response := []string{
 				`{
-					"errors": []
-					}`,
+                    "errors": []
+                    }`,
 			}
 
 			appGUID := "999"
@@ -296,21 +297,21 @@ var _ = Describe("CheckAllV3Commands", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("update application with incovation-timeout", func() {
+		It("update application with invocation timeout setting", func() {
 			response := []string{
 				`{
-						"command": "JAVA_OPTS=FOOBAR",
-						"created_at": "2019-02-25T14:09:01Z",
-						"disk_in_mb": 1024,
-						"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741",
-						"health_check": {
-							"data": {
-							  "endpoint": "/health",
-							  "invocation_timeout": 60
-							},
-							"type": "http"
-						  }
-					}`,
+                    "command": "JAVA_OPTS=FOOBAR",
+                    "created_at": "2019-02-25T14:09:01Z",
+                    "disk_in_mb": 1024,
+                    "guid": "6ca30711-72d2-415b-8ed3-6870b7e56741",
+                    "health_check": {
+                        "data": {
+                            "endpoint": "/health",
+                            "invocation_timeout": 60
+                        },
+                        "type": "http"
+                    }
+                }`,
 			}
 
 			appGUID := "999"
@@ -334,27 +335,24 @@ var _ = Describe("CheckAllV3Commands", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("update application with process setting", func() {
+		It("update application with process but without command setting", func() {
 			response := []string{
 				`{
-						"command": "JAVA_OPTS=FOOBAR",
-						"created_at": "2019-02-25T14:09:01Z",
-						"disk_in_mb": 1024,
-						"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741",
-						"health_check": {
-							"type": "process"
-						  },
-						"type": "web"
-					}`,
+                    "created_at": "2019-02-25T14:09:01Z",
+                    "disk_in_mb": 1024,
+                    "guid": "6ca30711-72d2-415b-8ed3-6870b7e56741",
+                    "health_check": {
+                        "type": "process"
+                    },
+                    "type": "web"
+                }`,
 			}
 
 			appGUID := "999"
-			command := "JAVA_OPTS=FOOBAR"
 
 			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
 
 			applicationEntity := ApplicationEntityV3{}
-			applicationEntity.Command = command
 			applicationEntity.HealthCheck.HealthCheckType = "process"
 			applicationEntity.ProcessType = "web"
 
@@ -362,7 +360,7 @@ var _ = Describe("CheckAllV3Commands", func() {
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
 			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
-			Expect(args).To(Equal([]string{"curl", "/v3/processes/999", "-X", "PATCH", "-H", "Content-type: application/json", "-d", "{\"command\":\"JAVA_OPTS=FOOBAR\",\"health_check\":{\"data\":{},\"type\":\"process\"},\"type\":\"web\"}"}))
+			Expect(args).To(Equal([]string{"curl", "/v3/processes/999", "-X", "PATCH", "-H", "Content-type: application/json", "-d", "{\"health_check\":{\"data\":{},\"type\":\"process\"},\"type\":\"web\"}"}))
 
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -377,7 +375,7 @@ var _ = Describe("ApplicationRepo", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		repo = NewApplicationRepo(cliConn)
+		repo = NewApplicationRepo(cliConn, false)
 	})
 
 	Describe("RenameApplication", func() {
@@ -421,16 +419,16 @@ var _ = Describe("ApplicationRepo", func() {
 		It("returns app data if the app exists", func() {
 			response := []string{
 				`{"resources":[
-					{
-						"metadata": {
-							"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741"
-						 },
-						"entity":
-							{
-								"state":"STARTED"
-							}
-					}]
-				}`,
+                    {
+                        "metadata": {
+                            "guid": "6ca30711-72d2-415b-8ed3-6870b7e56741"
+                         },
+                        "entity":
+                            {
+                                "state":"STARTED"
+                            }
+                    }]
+                }`,
 			}
 			spaceGUID := "4"
 
@@ -458,16 +456,16 @@ var _ = Describe("ApplicationRepo", func() {
 		It("URL encodes the application name", func() {
 			response := []string{
 				`{"resources":[
-					{
-						"metadata": {
-							"guid": "6ca30711-72d2-415b-8ed3-6870b7e56741"
-						 },
-						"entity":
-							{
-								"state":"STARTED"
-							}
-					}]
-				}`,
+                    {
+                        "metadata": {
+                            "guid": "6ca30711-72d2-415b-8ed3-6870b7e56741"
+                         },
+                        "entity":
+                            {
+                                "state":"STARTED"
+                            }
+                    }]
+                }`,
 			}
 			spaceGUID := "4"
 
