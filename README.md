@@ -37,7 +37,7 @@ $ cf zero-downtime-push \
     -t 120
 ```
 
-To get more information go to [CF-Puppeteer homepage](cf-puppeteer.happytobi.com)
+To get more information go to [CF-Puppeteer homepage](https://cf-puppeteer.happytobi.com/)
 
 ### passing an application name
 
