@@ -17,14 +17,14 @@ type Application struct {
 	DiskQuota               string                 `yaml:"disk_quota,omitempty"`
 	Routes                  []map[string]string    `yaml:"routes,omitempty"`
 	NoRoute                 bool                   `yaml:"no-route,omitempty"`
-	Buildpack               string                 `yaml:"buildpack,omitempty"`
+	Buildpacks              []string               `yaml:"buildpacks,omitempty"`
 	Command                 string                 `yaml:"command,omitempty"`
 	Env                     map[string]interface{} `yaml:"env,omitempty"`
 	Services                []string               `yaml:"services,omitempty"`
 	Stack                   string                 `yaml:"stack,omitempty"`
 	Timeout                 int                    `yaml:"timeout,omitempty"`
 	HealthCheckType         string                 `yaml:"health-check-type,omitempty"`
-	HealthCheckHttpEndpoint string                 `yaml:"health-check-http-endpoint,omitempty"`
+	HealthCheckHTTPEndpoint string                 `yaml:"health-check-http-endpoint,omitempty"`
 }
 
 // Manifest struct represents the application manifest.

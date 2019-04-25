@@ -19,6 +19,8 @@ var _ = Describe("Parse Manifest", func() {
 		manifest, err := Parse("../fixtures/manifest.yml")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(manifest.ApplicationManifests[0].Name).Should(Equal("myApp"))
+		Expect(manifest.ApplicationManifests[0].Buildpacks[0]).Should(Equal("java_buildpack"))
+		Expect(manifest.ApplicationManifests[0].Buildpacks[1]).Should(Equal("go_buildpack"))
 	})
 })
 
