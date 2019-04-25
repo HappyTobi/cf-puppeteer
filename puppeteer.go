@@ -18,6 +18,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/logs"
 	"code.cloudfoundry.org/cli/plugin"
 	"github.com/cloudfoundry/noaa/consumer"
+	"github.com/happytobi/cf-puppeteer/cfResources"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
 )
@@ -101,6 +102,7 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 		// push
 		{
 			Forward: func() error {
+				//add v3 push
 				return appRepo.PushApplication(appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, envs, showLogs)
 			},
 		},
@@ -157,7 +159,6 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	if os.Getenv("CF_PUPPETEER_TRACE") == "true" {
 		traceLogging = true
 	}
-
 	appRepo := NewApplicationRepo(cliConnection, traceLogging)
 	appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
 	fatalIf(err)
@@ -181,7 +182,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 0,
-			Build: 14,
+			Build: 15,
 		},
 		Commands: []plugin.Command{
 			{
@@ -347,12 +348,14 @@ var (
 type ApplicationRepo struct {
 	conn         plugin.CliConnection
 	traceLogging bool
+	cf           cfResources.CfResourcesInterface
 }
 
 func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *ApplicationRepo {
 	return &ApplicationRepo{
 		conn:         conn,
 		traceLogging: traceLogging,
+		cf:           cfResources.NewResources(conn),
 	}
 }
 
