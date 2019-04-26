@@ -160,7 +160,7 @@ var _ = Describe("cfResources", func() {
 	})
 
 	Describe("uploadApplication with curl v3 api", func() {
-		It("create package for created application", func() {
+		It("create package for created< application", func() {
 			response := []string{
 				`
 				{
