@@ -14,6 +14,7 @@ import (
 type CfResourcesInterface interface {
 	//Add methods here
 	PushApp(appName string, spaceGUID string) (*V3AppResponse, error)
+	CreatePackage(appGUID string) (*V3PackageResponse, error)
 }
 
 type ResourcesData struct {
@@ -33,7 +34,7 @@ type V3Apps struct {
 	Relationships struct {
 		Space struct {
 			Data struct {
-				Guid string `json:"guid"`
+				GUID string `json:"guid"`
 			} `json:"data"`
 		} `json:"space"`
 	} `json:"relationships"`
@@ -43,13 +44,16 @@ type V3Apps struct {
 }
 
 type V3AppResponse struct {
-	Guid string `json:"guid"`
+	GUID string `json:"guid"`
 }
 
+//PushApp push app with v3 api to cloudfoundry
 func (resource *ResourcesData) PushApp(appName string, spaceGUID string) (*V3AppResponse, error) {
 	path := fmt.Sprintf(`/v3/apps`)
+
 	var v3App V3Apps
-	v3App.Relationships.Space.Data.Guid = spaceGUID
+	v3App.Relationships.Space.Data.GUID = spaceGUID
+
 	//TODO move to function
 	appJSON, err := json.Marshal(v3App)
 	if err != nil {
@@ -75,6 +79,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string) (*V3App
 		return nil, err
 	}
 
+	//TODO add error
 	/*if len(applicationProcessResponse.GUID) == 0 {
 		return nil, ErrAppNotFound
 	}*/
@@ -96,33 +101,58 @@ func prettyPrintJSON(jsonUgly string) error {
 	return nil
 }
 
-/*
+//V3Package represents post model of V3Package body
 type V3Package struct {
-	packageType   string `json:"type"`
+	PackageType   string `json:"type"`
 	Relationships struct {
 		App struct {
 			Data struct {
-				guid string `json:"guid"`
+				GUID string `json:"guid"`
 			} `json:"data"`
 		} `json:"app"`
 	} `json:"relationships"`
 }
 
-func (resource *ResourcesData) createPackage(appGUID string) error {
-	path := fmt.Sprintf(`/v3/packages`)
-	appData := &V3Package{}
-
-	//TODO move to function
-	appJSON, err := json.Marshal(appData)
-	if err != nil {
-		return err
-	}
-	result, err := resource.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
-		string(appJSON))
-
-	return err
+//V3PackageResponse create package response payload
+type V3PackageResponse struct {
+	GUID string `json:"guid"`
 }
 
+//CreatePackage create a package with v3 cf api
+func (resource *ResourcesData) CreatePackage(appGUID string) (*V3PackageResponse, error) {
+	path := fmt.Sprintf(`/v3/packages`)
+	var v3Package V3Package
+	v3Package.PackageType = "bits"
+	v3Package.Relationships.App.Data.GUID = appGUID
+
+	//TODO move to function
+	appJSON, err := json.Marshal(v3Package)
+	if err != nil {
+		return nil, err
+	}
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
+		string(appJSON))
+
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	var response V3PackageResponse
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
+}
+
+/*
 func (resource *ResourcesData) uploadApplication(packageGUID string) error {
 	path := fmt.Sprintf(`/v3/packages/%s/upload`, packageGUID)
 

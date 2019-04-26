@@ -29,7 +29,7 @@ var _ = Describe("cfResources", func() {
 		It("push simple application with v3 api", func() {
 			response := []string{
 				`{
-					"guid": "1cb006ee-fb05-47e1-b541-c34179ddc446",
+					"guid": "2f35885d-0c9d-4423-83ad-fd05066f8576",
 					"name": "my_app",
 					"state": "STOPPED",
 					"created_at": "2016-03-17T21:41:30Z",
@@ -103,9 +103,110 @@ var _ = Describe("cfResources", func() {
 			pushResponse, err := cf.PushApp("my_app", "2f35885d-0c9d-4423-83ad-fd05066f8576")
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
-			Expect(pushResponse.Guid).To(Equal("1cb006ee-fb05-47e1-b541-c34179ddc446"))
+			Expect(pushResponse.GUID).To(Equal("2f35885d-0c9d-4423-83ad-fd05066f8576"))
 			Expect(err).ToNot(HaveOccurred())
+		})
+	})
 
+	Describe("createPackage with curl v3 api", func() {
+		It("create package for created application", func() {
+			response := []string{
+				`
+				{
+					"guid": "44f7c078-0934-470f-9883-4fcddc5b8f13",
+					"type": "bits",
+					"data": {
+					  "checksum": {
+						"type": "sha256",
+						"value": null
+					  },
+					  "error": null
+					},
+					"state": "PROCESSING_UPLOAD",
+					"created_at": "2015-11-13T17:02:56Z",
+					"updated_at": "2016-06-08T16:41:26Z",
+					"metadata": {
+					  "labels": { },
+					  "annotations": { }
+					},
+					"links": {
+					  "self": {
+						"href": "https://api.example.org/v3/packages/44f7c078-0934-470f-9883-4fcddc5b8f13"
+					  },
+					  "upload": {
+						"href": "https://api.example.org/v3/packages/44f7c078-0934-470f-9883-4fcddc5b8f13/upload",
+						"method": "POST"
+					  },
+					  "download": {
+						"href": "https://api.example.org/v3/packages/44f7c078-0934-470f-9883-4fcddc5b8f13/download",
+						"method": "GET"
+					  },
+					  "app": {
+						"href": "https://api.example.org/v3/apps/1d3bf0ec-5806-43c4-b64e-8364dba1086a"
+					  }
+					}
+				  }
+				  `,
+			}
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			//pass packageGUID
+			pushResponse, err := cf.CreatePackage("2f35885d-0c9d-4423-83ad-fd05066f8576")
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			Expect(pushResponse.GUID).To(Equal("44f7c078-0934-470f-9883-4fcddc5b8f13"))
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Describe("uploadApplication with curl v3 api", func() {
+		It("create package for created application", func() {
+			response := []string{
+				`
+				{
+					"guid": "44f7c078-0934-470f-9883-4fcddc5b8f13",
+					"type": "bits",
+					"data": {
+					  "checksum": {
+						"type": "sha256",
+						"value": null
+					  },
+					  "error": null
+					},
+					"state": "PROCESSING_UPLOAD",
+					"created_at": "2015-11-13T17:02:56Z",
+					"updated_at": "2016-06-08T16:41:26Z",
+					"metadata": {
+					  "labels": { },
+					  "annotations": { }
+					},
+					"links": {
+					  "self": {
+						"href": "https://api.example.org/v3/packages/44f7c078-0934-470f-9883-4fcddc5b8f13"
+					  },
+					  "upload": {
+						"href": "https://api.example.org/v3/packages/44f7c078-0934-470f-9883-4fcddc5b8f13/upload",
+						"method": "POST"
+					  },
+					  "download": {
+						"href": "https://api.example.org/v3/packages/44f7c078-0934-470f-9883-4fcddc5b8f13/download",
+						"method": "GET"
+					  },
+					  "app": {
+						"href": "https://api.example.org/v3/apps/1d3bf0ec-5806-43c4-b64e-8364dba1086a"
+					  }
+					}
+				  }
+				  `,
+			}
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			//pass packageGUID
+			pushResponse, err := cf.CreatePackage("2f35885d-0c9d-4423-83ad-fd05066f8576")
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			Expect(pushResponse.GUID).To(Equal("44f7c078-0934-470f-9883-4fcddc5b8f13"))
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
