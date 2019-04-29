@@ -180,17 +180,59 @@ func (resource *ResourcesData) stagePackage(packageGUID string) error {
 	_, err := resource.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d", string(appJSON))
 
 	return err
+}*/
+
+//V3BuildPackage represents post model of V3BuildPackage body
+type V3BuildPackage struct {
+	Package struct {
+		GUID string `json:"guid"`
+	} `json:"package"`
+	Lifecycle struct {
+		LifecycleType string `json:"type"`
+		LifecycleData struct {
+			Buildpacks []string `json:"buildpacks"`
+		} `json:"data"`
+	} `json:"lifecycle"`
+}
+
+//V3BuildResponse represents response ot the created build
+type V3BuildResponse struct {
+	GUID string `json:"guid"`
 }
 
 //check till build is staged
-func (resource *ResourcesData) checkBuildStage(buildGUID string) error {
-	path := fmt.Sprintf(`/v3/builds/%s`, buildGUID)
+func (resource *ResourcesData) checkBuildStage(packageGUID string) (*V3BuildResponse, error) {
+	path := fmt.Sprintf(`/v3/builds`)
+	var v3buildPackage V3BuildPackage
+	v3buildPackage.Package.GUID = packageGUID
+	v3buildPackage.Lifecycle.LifecycleType = "buildpack"
+	v3buildPackage.Lifecycle.LifecycleData.Buildpacks[0] = "" //TODO
 
-	_, err := resource.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
-	//check state "STAGED"
+	//TODO move to function
+	appJSON, err := json.Marshal(v3buildPackage)
+	if err != nil {
+		return nil, err
+	}
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
+		string(appJSON))
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	var response V3BuildResponse
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
 }
 
 //TODO step 8 - 13
-*/
