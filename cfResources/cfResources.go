@@ -15,6 +15,8 @@ type CfResourcesInterface interface {
 	//Add methods here
 	PushApp(appName string, spaceGUID string) (*V3AppResponse, error)
 	CreatePackage(appGUID string) (*V3PackageResponse, error)
+
+	CreateBuild(packageGUID string) (*V3BuildResponse, error)
 }
 
 type ResourcesData struct {
@@ -201,7 +203,7 @@ type V3BuildResponse struct {
 }
 
 //check till build is staged
-func (resource *ResourcesData) checkBuildStage(packageGUID string) (*V3BuildResponse, error) {
+func (resource *ResourcesData) CreateBuild(packageGUID string) (*V3BuildResponse, error) {
 	path := fmt.Sprintf(`/v3/builds`)
 	var v3buildPackage V3BuildPackage
 	v3buildPackage.Package.GUID = packageGUID
