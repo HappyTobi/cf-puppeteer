@@ -202,13 +202,13 @@ type V3BuildResponse struct {
 	GUID string `json:"guid"`
 }
 
-//check till build is staged
+//CreateBuild
 func (resource *ResourcesData) CreateBuild(packageGUID string) (*V3BuildResponse, error) {
 	path := fmt.Sprintf(`/v3/builds`)
 	var v3buildPackage V3BuildPackage
 	v3buildPackage.Package.GUID = packageGUID
 	v3buildPackage.Lifecycle.LifecycleType = "buildpack"
-	v3buildPackage.Lifecycle.LifecycleData.Buildpacks[0] = "" //TODO
+	v3buildPackage.Lifecycle.LifecycleData.Buildpacks = append(v3buildPackage.Lifecycle.LifecycleData.Buildpacks, "")
 
 	//TODO move to function
 	appJSON, err := json.Marshal(v3buildPackage)
