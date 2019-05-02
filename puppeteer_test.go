@@ -30,7 +30,7 @@ var _ = Describe("Flag Parsing", func() {
 	})
 
 	It("parses args without appName", func() {
-		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		parsedArguments, err := ParseArgs(
 			repo, []string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
@@ -49,24 +49,24 @@ var _ = Describe("Flag Parsing", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(appName).Should(Equal("myApp"))
-		Expect(manifestPath).To(Equal("./fixtures/manifest.yml"))
-		Expect(appPath).To(Equal("app-path"))
-		Expect(stackName).To(Equal("stack-name"))
-		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
-		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
-		Expect(vendorAppOption).Should(Equal("stop"))
-		Expect(showLogs).To(Equal(false))
-		Expect(timeout).To(Equal(120))
-		Expect(invocationTimeout).To(Equal(2211))
-		Expect(process).To(Equal("process-name"))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
+		Expect(parsedArguments.AppName).Should(Equal("myApp"))
+		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/manifest.yml"))
+		Expect(parsedArguments.AppPath).To(Equal("app-path"))
+		Expect(parsedArguments.StackName).To(Equal("stack-name"))
+		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
+		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
+		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
+		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.Timeout).To(Equal(120))
+		Expect(parsedArguments.InvocationTimeout).To(Equal(2211))
+		Expect(parsedArguments.Process).To(Equal("process-name"))
+		Expect(parsedArguments.HealthCheckType).To(Equal("http"))
+		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/health"))
 	})
 
 	It("parses a all args without timeout", func() {
-		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		parsedArguments, err := ParseArgs(
 			repo, []string{
 				"zero-downtime-push",
 				"appname",
@@ -83,24 +83,24 @@ var _ = Describe("Flag Parsing", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(appName).To(Equal("appname"))
-		Expect(manifestPath).To(Equal("./fixtures/manifest.yml"))
-		Expect(appPath).To(Equal("app-path"))
-		Expect(stackName).To(Equal("stack-name"))
-		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
-		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(vendorAppOption).Should(Equal("stop"))
-		Expect(showLogs).To(Equal(false))
-		Expect(timeout).To(Equal(2))
-		Expect(invocationTimeout).To(Equal(-1))
-		Expect(process).To(Equal(""))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
+		Expect(parsedArguments.AppName).To(Equal("appname"))
+		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/manifest.yml"))
+		Expect(parsedArguments.AppPath).To(Equal("app-path"))
+		Expect(parsedArguments.StackName).To(Equal("stack-name"))
+		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
+		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
+		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.Timeout).To(Equal(2))
+		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
+		Expect(parsedArguments.Process).To(Equal(""))
+		Expect(parsedArguments.HealthCheckType).To(Equal("http"))
+		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/health"))
 	})
 
 	It("parses a all args without timeout and no manifest timeout", func() {
-		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		parsedArguments, err := ParseArgs(
 			repo, []string{
 				"zero-downtime-push",
 				"appname",
@@ -117,24 +117,24 @@ var _ = Describe("Flag Parsing", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(appName).To(Equal("appname"))
-		Expect(manifestPath).To(Equal("./fixtures/multiManifest.yml"))
-		Expect(appPath).To(Equal("app-path"))
-		Expect(stackName).To(Equal("stack-name"))
-		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
-		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(vendorAppOption).Should(Equal("stop"))
-		Expect(showLogs).To(Equal(false))
-		Expect(timeout).To(Equal(60))
-		Expect(invocationTimeout).To(Equal(-1))
-		Expect(process).To(Equal(""))
-		Expect(healthCheckType).To(Equal("http"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/health"))
+		Expect(parsedArguments.AppName).To(Equal("appname"))
+		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/multiManifest.yml"))
+		Expect(parsedArguments.AppPath).To(Equal("app-path"))
+		Expect(parsedArguments.StackName).To(Equal("stack-name"))
+		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
+		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
+		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.Timeout).To(Equal(60))
+		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
+		Expect(parsedArguments.Process).To(Equal(""))
+		Expect(parsedArguments.HealthCheckType).To(Equal("http"))
+		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/health"))
 	})
 
 	It("parses a complete set of args", func() {
-		appName, manifestPath, appPath, healthCheckType, healthCheckHttpEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(
+		parsedArguments, err := ParseArgs(
 			repo, []string{
 				"zero-downtime-push",
 				"appname",
@@ -156,24 +156,24 @@ var _ = Describe("Flag Parsing", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(appName).To(Equal("appname"))
-		Expect(manifestPath).To(Equal("./fixtures/manifest.yml"))
-		Expect(appPath).To(Equal("app-path"))
-		Expect(stackName).To(Equal("stack-name"))
-		Expect(vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(varsFiles).To(Equal([]string{"vars.yml"}))
-		Expect(envs).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(vendorAppOption).Should(Equal("delete"))
-		Expect(showLogs).To(Equal(true))
-		Expect(timeout).To(Equal(120))
-		Expect(invocationTimeout).To(Equal(2211))
-		Expect(process).To(Equal("process-name"))
-		Expect(healthCheckType).To(Equal("process"))
-		Expect(healthCheckHttpEndpoint).To(Equal("/foo/bar"))
+		Expect(parsedArguments.AppName).To(Equal("appname"))
+		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/manifest.yml"))
+		Expect(parsedArguments.AppPath).To(Equal("app-path"))
+		Expect(parsedArguments.StackName).To(Equal("stack-name"))
+		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
+		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
+		Expect(parsedArguments.VendorAppOption).Should(Equal("delete"))
+		Expect(parsedArguments.ShowLogs).To(Equal(true))
+		Expect(parsedArguments.Timeout).To(Equal(120))
+		Expect(parsedArguments.InvocationTimeout).To(Equal(2211))
+		Expect(parsedArguments.Process).To(Equal("process-name"))
+		Expect(parsedArguments.HealthCheckType).To(Equal("process"))
+		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/foo/bar"))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
-		_, _, _, _, _, _, _, _, _, _, _, _, _, _, err := ParseArgs(
+		_, err := ParseArgs(
 			repo, []string{
 				"zero-downtime-push",
 				"-f", "./fixtures/manifest.yml",
@@ -193,7 +193,7 @@ var _ = Describe("Flag Parsing", func() {
 	})
 
 	It("requires a manifest", func() {
-		_, _, _, _, _, _, _, _, _, _, _, _, _, _, err := ParseArgs(
+		_, err := ParseArgs(
 			repo, []string{
 				"zero-downtime-push",
 				"appname",
@@ -505,7 +505,14 @@ var _ = Describe("ApplicationRepo", func() {
 
 	Describe("PushApplication", func() {
 		It("pushes an application with both a manifest and a path", func() {
-			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "/path/to/the/app", "", 60, []string{}, []string{}, []string{}, false)
+			parsedArguments := &ParserArguments{
+				AppName:      "appName",
+				ManifestPath: "/path/to/a/manifest.yml",
+				AppPath:      "/path/to/the/app",
+				Timeout:      60,
+			}
+
+			err := repo.PushApplication(parsedArguments)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cliConn.CliCommandCallCount()).To(Equal(1))
@@ -521,7 +528,14 @@ var _ = Describe("ApplicationRepo", func() {
 		})
 
 		It("pushes an application with only a manifest", func() {
-			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "", "", 60, []string{}, []string{}, []string{}, false)
+			parsedArguments := &ParserArguments{
+				AppName:      "appName",
+				ManifestPath: "/path/to/a/manifest.yml",
+
+				Timeout: 60,
+			}
+
+			err := repo.PushApplication(parsedArguments)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cliConn.CliCommandCallCount()).To(Equal(1))
@@ -536,7 +550,16 @@ var _ = Describe("ApplicationRepo", func() {
 		})
 
 		It("pushes an application with a stack", func() {
-			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "/path/to/the/app", "stackName", 60, []string{}, []string{}, []string{}, false)
+			parsedArguments := &ParserArguments{
+				AppName:      "appName",
+				ManifestPath: "/path/to/a/manifest.yml",
+				AppPath:      "/path/to/the/app",
+				StackName:    "stackName",
+				Timeout:      60,
+			}
+
+			err := repo.PushApplication(parsedArguments)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cliConn.CliCommandCallCount()).To(Equal(1))
@@ -553,7 +576,16 @@ var _ = Describe("ApplicationRepo", func() {
 		})
 
 		It("pushes an application with variables", func() {
-			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "", "", 60, []string{"foo=bar", "baz=bob"}, []string{"vars.yml"}, []string{"foo=bar", "bar=foo=true"}, false)
+			parsedArguments := &ParserArguments{
+				AppName:      "appName",
+				ManifestPath: "/path/to/a/manifest.yml",
+				Vars:         []string{"foo=bar", "baz=bob"},
+				VarsFiles:    []string{"vars.yml"},
+				Envs:         []string{"foo=bar", "bar=foo=true"},
+				Timeout:      60,
+			}
+
+			err := repo.PushApplication(parsedArguments)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cliConn.CliCommandCallCount()).To(Equal(3))
@@ -589,7 +621,14 @@ var _ = Describe("ApplicationRepo", func() {
 		It("returns errors from the push", func() {
 			cliConn.CliCommandReturns([]string{}, errors.New("bad app"))
 
-			err := repo.PushApplication("appName", "/path/to/a/manifest.yml", "/path/to/the/app", "", 60, []string{}, []string{}, []string{}, false)
+			parsedArguments := &ParserArguments{
+				AppName:      "appName",
+				ManifestPath: "/path/to/a/manifest.yml",
+				AppPath:      "/path/to/the/app",
+			}
+
+			err := repo.PushApplication(parsedArguments)
+
 			Expect(err).To(MatchError("bad app"))
 		})
 	})
