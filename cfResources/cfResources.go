@@ -11,6 +11,7 @@ import (
 
 //https://github.com/cloudfoundry/cloud_controller_ng/wiki/How-to-Create-an-App-Using-V3-of-the-CC-API
 
+//CfResourcesInterface interface for cfResource usage
 type CfResourcesInterface interface {
 	//Add methods here
 	PushApp(appName string, spaceGUID string) (*V3AppResponse, error)
@@ -19,11 +20,13 @@ type CfResourcesInterface interface {
 	CreateBuild(packageGUID string) (*V3BuildResponse, error)
 }
 
+//ResourcesData struct to hold important instances to run push
 type ResourcesData struct {
 	Connection   plugin.CliConnection
 	TraceLogging bool
 }
 
+//NewResources create a new instance of CFResources
 func NewResources(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 	return &ResourcesData{
 		Connection:   conn,
@@ -31,6 +34,7 @@ func NewResources(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 	}
 }
 
+//V3Apps application struct
 type V3Apps struct {
 	Name          string `json:"name"`
 	Relationships struct {
@@ -45,6 +49,7 @@ type V3Apps struct {
 	} `json:"environmentVariables,omitempty"`
 }
 
+//V3AppResponse application response struct
 type V3AppResponse struct {
 	GUID string `json:"guid"`
 }
@@ -202,7 +207,7 @@ type V3BuildResponse struct {
 	GUID string `json:"guid"`
 }
 
-//CreateBuild
+//CreateBuild with packagedGUID
 func (resource *ResourcesData) CreateBuild(packageGUID string) (*V3BuildResponse, error) {
 	path := fmt.Sprintf(`/v3/builds`)
 	var v3buildPackage V3BuildPackage
