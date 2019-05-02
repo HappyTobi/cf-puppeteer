@@ -8,15 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Upcoming features [1.0.0]
 
 - add argument to cleanup unused enviroment variables
-- [x] add argument to stop old service only instead of deletion
 - log deployment time
-- [-] add static page with plugin documentation
 - [-] code cleanup
 - fix all linter problems
 - sorted options
 - colorized logging ("code.cloudfoundry.org/cli/cf/terminal")
 
-## [0.0.15] - unreleased (WIP)
+## [1.0.0] - unreleased (WIP)
 
 ### Added
 
@@ -29,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - manifest parser to understand new format (https://docs.cloudfoundry.org/devguide/deploy-apps/manifest-attributes.html#buildpack)
+
+### Features
+
+- add argument to stop old service only instead of deletion
 
 ## [0.0.14] - 2019-03-25
 
