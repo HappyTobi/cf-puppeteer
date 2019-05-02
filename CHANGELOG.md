@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - push application with v3 api
 
+### Changed
+
+- update ParseArgs to struct instead of multi return values
+
 ### Fixed
 
 - manifest parser to understand new format (https://docs.cloudfoundry.org/devguide/deploy-apps/manifest-attributes.html#buildpack)

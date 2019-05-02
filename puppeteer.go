@@ -40,8 +40,8 @@ func venerableAppName(appName string) string {
 	return fmt.Sprintf("%s-venerable", appName)
 }
 
-func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath string, appPath string, healthCheckType string, healthCheckHTTPEndpoint string, timeout int, invocationTimeout int, process string, stackName string, vendorAppOption string, vars []string, varsFiles []string, envs []string, showLogs bool) []rewind.Action {
-	venName := venerableAppName(appName)
+func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments) []rewind.Action {
+	venName := venerableAppName(parsedArguments.AppName)
 	var err error
 	var curApp, venApp, temp *AppResourcesEntity
 	var haveVenToCleanup bool
@@ -50,7 +50,7 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 		// get info about current app
 		{
 			Forward: func() error {
-				curApp, err = appRepo.GetAppMetadata(appName)
+				curApp, err = appRepo.GetAppMetadata(parsedArguments.AppName)
 				if err != ErrAppNotFound {
 					return err
 				}
@@ -82,7 +82,7 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 
 				// If current app isn't started, then we'll just delete it, and we're done
 				if curApp.Entity.State != "STARTED" {
-					return appRepo.DeleteApplication(appName)
+					return appRepo.DeleteApplication(parsedArguments.AppName)
 				}
 
 				// Do we have a ven app that will stop a rename?
@@ -96,29 +96,29 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 
 				// Finally, rename
 				haveVenToCleanup = true
-				return appRepo.RenameApplication(appName, venName)
+				return appRepo.RenameApplication(parsedArguments.AppName, venName)
 			},
 		},
 		// push
 		{
 			Forward: func() error {
 				//add v3 push
-				return appRepo.PushApplication(appName, manifestPath, appPath, stackName, timeout, vars, varsFiles, envs, showLogs)
+				return appRepo.PushApplication(parsedArguments)
 			},
 		},
 		{
 			Forward: func() error {
-				temp, err = appRepo.GetAppMetadata(appName)
+				temp, err = appRepo.GetAppMetadata(parsedArguments.AppName)
 				if err != nil {
 					return err
 				}
-				return appRepo.SetHealthCheckV3(appName, temp.Metadata.GUID, healthCheckType, healthCheckHTTPEndpoint, invocationTimeout, process)
+				return appRepo.SetHealthCheckV3(parsedArguments, temp.Metadata.GUID)
 			},
 		},
 		// start
 		{
 			Forward: func() error {
-				return appRepo.StartApplication(appName)
+				return appRepo.StartApplication(parsedArguments.AppName)
 			},
 			ReversePrevious: func() error {
 				if !haveVenToCleanup {
@@ -127,9 +127,9 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 
 				// If the app cannot start we'll have a lingering application
 				// We delete this application so that the rename can succeed
-				appRepo.DeleteApplication(appName)
+				appRepo.DeleteApplication(parsedArguments.AppName)
 
-				return appRepo.RenameApplication(venName, appName)
+				return appRepo.RenameApplication(venName, parsedArguments.AppName)
 			},
 		},
 		// delete
@@ -140,7 +140,7 @@ func getActionsForApp(appRepo *ApplicationRepo, appName string, manifestPath str
 				}
 
 				//if vendorAppOption was set to stop
-				if strings.ToLower(vendorAppOption) == "stop" {
+				if strings.ToLower(parsedArguments.VendorAppOption) == "stop" {
 					return appRepo.StopApplication(venName)
 				}
 				return appRepo.DeleteApplication(venName)
@@ -160,11 +160,11 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 		traceLogging = true
 	}
 	appRepo := NewApplicationRepo(cliConnection, traceLogging)
-	appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs, err := ParseArgs(appRepo, args)
+	parsedArguments, err := ParseArgs(appRepo, args)
 	fatalIf(err)
 
 	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, appName, manifestPath, appPath, healthCheckType, healthCheckHTTPEndpoint, timeout, invocationTimeout, process, stackName, vendorAppOption, vars, varsFiles, envs, showLogs),
+		Actions:              getActionsForApp(appRepo, parsedArguments),
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
@@ -223,35 +223,54 @@ func (s *StringSlice) Set(value string) error {
 	return nil
 }
 
+type ParserArguments struct {
+	AppName                 string
+	ManifestPath            string
+	AppPath                 string
+	HealthCheckType         string
+	HealthCheckHTTPEndpoint string
+	Timeout                 int
+	InvocationTimeout       int
+	Process                 string
+	StackName               string
+	VendorAppOption         string
+	Vars                    []string
+	VarsFiles               []string
+	Envs                    []string
+	ShowLogs                bool
+	DockerImage             string
+	DockerUserName          string
+}
+
 // ParseArgs parses the command line arguments
-func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, string, string, int, int, string, string, string, []string, []string, []string, bool, error) {
+func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	flags := flag.NewFlagSet("zero-downtime-push", flag.ContinueOnError)
 
 	var envs StringSlice
 	var vars StringSlice
 	var varsFiles StringSlice
 
-	manifestPath := flags.String("f", "", "path to an application manifest")
-	appPath := flags.String("p", "", "path to application files")
-	stackName := flags.String("s", "", "name of the stack to use")
-	healthCheckType := flags.String("health-check-type", "", "type of health check to perform")
-	healthCheckHTTPEndpoint := flags.String("health-check-http-endpoint", "", "endpoint for the 'http' health check type")
-	timeout := flags.Int("t", 0, "push timeout in secounds (defaults to 60 seconds)")
-	invocationTimeout := flags.Int("invocation-timeout", -1, "health check invocation timeout in seconds")
-	process := flags.String("process", "", "application process to update")
-	showLogs := flags.Bool("show-app-log", false, "tail and show application log during application start")
-	vendorAppOption := flags.String("vendor-option", "delete", "option to delete or stop vendor application - default is delete")
+	pta := &ParserArguments{}
+	flags.StringVar(&pta.ManifestPath, "f", "", "path to an application manifest")
+	flags.StringVar(&pta.AppPath, "p", "", "path to application files")
+	flags.StringVar(&pta.StackName, "s", "", "name of the stack to use")
+	flags.StringVar(&pta.HealthCheckType, "health-check-type", "", "type of health check to perform")
+	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
+	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in secounds (defaults to 60 seconds)")
+	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
+	flags.StringVar(&pta.Process, "process", "", "application process to update")
+	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
+	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete or stop vendor application - default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specity multiple times")
 	flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
 	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
-
-	/*dockerImage := flags.String("docker-image", "", "url to docker image")
-	  dockerUserName := flags.String("docker-username", "", "pass docker username if image came from private repository")
-	  dockerPass := os.Getenv("CF_DOCKER_PASSWORD")*/
+	flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
+	flags.StringVar(&pta.DockerUserName, "docker-username", "", "pass docker username if image came from private repository")
+	//dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
 
 	//first check if argument was passed
 	if len(args) < 2 {
-		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrNoArgument
+		return pta, ErrNoArgument
 	}
 
 	//default start index of parameters is 2 because 1 is the appName
@@ -265,17 +284,17 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 
 	err := flags.Parse(args[argumentStartIndex:])
 	if err != nil {
-		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, err
+		return pta, err
 	}
 
-	if *manifestPath == "" {
-		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrNoManifest
+	if pta.ManifestPath == "" {
+		return pta, ErrNoManifest
 	}
 
 	//parse manifest
-	parsedManifest, err := manifest.Parse(*manifestPath)
+	parsedManifest, err := manifest.Parse(pta.ManifestPath)
 	if err != nil {
-		return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrManifest
+		return pta, ErrManifest
 	}
 
 	/*if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
@@ -284,30 +303,30 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 
 	//set timeout
 	manifestTimeout := parsedManifest.ApplicationManifests[0].Timeout
-	if manifestTimeout > 0 && *timeout <= 0 {
-		*timeout = manifestTimeout
-	} else if manifestTimeout <= 0 && *timeout <= 0 {
-		*timeout = 60
+	if manifestTimeout > 0 && pta.Timeout <= 0 {
+		pta.Timeout = manifestTimeout
+	} else if manifestTimeout <= 0 && pta.Timeout <= 0 {
+		pta.Timeout = 60
 	}
 
 	//parse first argument as appName
-	appName := args[1]
+	pta.AppName = args[1]
 	if noAppNameProvided {
-		appName = parsedManifest.ApplicationManifests[0].Name
+		pta.AppName = parsedManifest.ApplicationManifests[0].Name
 	}
 
 	// get health check settings from manifest if nothing else was specified in the command line
-	if *healthCheckType == "" {
-		*healthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
+	if pta.HealthCheckType == "" {
+		pta.HealthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
 	}
-	if *healthCheckHTTPEndpoint == "" {
-		*healthCheckHTTPEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHttpEndpoint
+	if pta.HealthCheckHTTPEndpoint == "" {
+		pta.HealthCheckHTTPEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHTTPEndpoint
 	}
 
-	if *healthCheckType != "" || *healthCheckHTTPEndpoint != "" || *process != "" {
+	if pta.HealthCheckType != "" || pta.HealthCheckHTTPEndpoint != "" || pta.Process != "" {
 		err = repo.CheckAPIV3()
 		if err != nil {
-			return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrNoV3ApiAvailable
+			return pta, ErrNoV3ApiAvailable
 		}
 	}
 
@@ -317,12 +336,16 @@ func ParseArgs(repo *ApplicationRepo, args []string) (string, string, string, st
 	if len(envs) > 0 {
 		for _, envPair := range envs {
 			if strings.Contains(envPair, "=") == false {
-				return "", "", "", "", "", *timeout, *invocationTimeout, "", "", "", []string{}, []string{}, []string{}, false, ErrWrongEnvFormat
+				return pta, ErrWrongEnvFormat
 			}
 		}
 	}
 
-	return appName, *manifestPath, *appPath, *healthCheckType, *healthCheckHTTPEndpoint, *timeout, *invocationTimeout, *process, *stackName, *vendorAppOption, vars, varsFiles, envs, *showLogs, nil
+	pta.Envs = envs
+	pta.Vars = vars
+	pta.VarsFiles = varsFiles
+
+	return pta, nil
 }
 
 //all custom errors
@@ -355,7 +378,7 @@ func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *Applicati
 	return &ApplicationRepo{
 		conn:         conn,
 		traceLogging: traceLogging,
-		cf:           cfResources.NewResources(conn),
+		cf:           cfResources.NewResources(conn, traceLogging),
 	}
 }
 
@@ -375,9 +398,9 @@ func (repo *ApplicationRepo) StartApplication(appName string) error {
 }
 
 // SetHealthCheckV3 sets the health check for the specified application using the given health check configuration
-func (repo *ApplicationRepo) SetHealthCheckV3(appName string, GUID string, healthCheckType string, healthCheckHTTPEndpoint string, invocationTimeout int, process string) error {
+func (repo *ApplicationRepo) SetHealthCheckV3(parsedArguments *ParserArguments, GUID string) error {
 	// Without a health check type, the CF command is not valid. Therefore, leave if the type is not specified
-	if healthCheckType == "" {
+	if parsedArguments.HealthCheckType == "" {
 		return nil
 	}
 
@@ -386,21 +409,21 @@ func (repo *ApplicationRepo) SetHealthCheckV3(appName string, GUID string, healt
 
 	applicationEntity := ApplicationEntityV3{}
 	applicationEntity.Command = appProcesEntity.Command
-	applicationEntity.HealthCheck.HealthCheckType = healthCheckType
+	applicationEntity.HealthCheck.HealthCheckType = parsedArguments.HealthCheckType
 
-	if healthCheckType == "http" && healthCheckHTTPEndpoint != "" {
-		applicationEntity.HealthCheck.Data.Endpoint = healthCheckHTTPEndpoint
-		if invocationTimeout >= 0 {
-			applicationEntity.HealthCheck.Data.InvocationTimeout = invocationTimeout
+	if parsedArguments.HealthCheckType == "http" && parsedArguments.HealthCheckHTTPEndpoint != "" {
+		applicationEntity.HealthCheck.Data.Endpoint = parsedArguments.HealthCheckHTTPEndpoint
+		if parsedArguments.InvocationTimeout >= 0 {
+			applicationEntity.HealthCheck.Data.InvocationTimeout = parsedArguments.InvocationTimeout
 		}
-	} else if process != "" && (healthCheckType == "process" || healthCheckType == "port") {
-		applicationEntity.ProcessType = process
+	} else if parsedArguments.Process != "" && (parsedArguments.HealthCheckType == "process" || parsedArguments.HealthCheckType == "port") {
+		applicationEntity.ProcessType = parsedArguments.Process
 	} else {
 		return ErrWrongInvocationTimeoutArgs
 	}
 
 	fmt.Println("")
-	fmt.Printf("Updating health check setting for application %v", appName)
+	fmt.Printf("Updating health check setting for application %v", parsedArguments.AppName)
 	fmt.Println("")
 	err = repo.UpdateApplicationProcessWebInformation(appProcesEntity.GUID, applicationEntity)
 	return err
@@ -408,26 +431,25 @@ func (repo *ApplicationRepo) SetHealthCheckV3(appName string, GUID string, healt
 
 // PushApplication executes the Cloud Foundry push command for the specified application.
 // It returns any error that prevents a successful completion of the operation.
-func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, stackName string, timeout int, vars []string, varsFiles []string, envs []string, showLogs bool) error {
-	args := []string{"push", appName, "-f", manifestPath, "--no-start"}
+func (repo *ApplicationRepo) PushApplication(parsedArguments *ParserArguments) error {
+	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start"}
 
-	if appPath != "" {
-		args = append(args, "-p", appPath)
+	if parsedArguments.AppPath != "" {
+		args = append(args, "-p", parsedArguments.AppPath)
 	}
 
-	if stackName != "" {
-		args = append(args, "-s", stackName)
+	if parsedArguments.StackName != "" {
+		args = append(args, "-s", parsedArguments.StackName)
 	}
 
 	/* always append timeout */
-	timeoutS := strconv.Itoa(timeout)
-	args = append(args, "-t", timeoutS)
-
-	for _, varPair := range vars {
+	timeout := strconv.Itoa(parsedArguments.Timeout)
+	args = append(args, "-t", timeout)
+	for _, varPair := range parsedArguments.Vars {
 		args = append(args, "--var", varPair)
 	}
 
-	for _, varsFile := range varsFiles {
+	for _, varsFile := range parsedArguments.VarsFiles {
 		args = append(args, "--vars-file", varsFile)
 	}
 
@@ -436,13 +458,13 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 		return err
 	}
 
-	envErr := repo.SetEnvironmentVariables(appName, envs)
+	envErr := repo.setEnvironmentVariables(parsedArguments.AppName, parsedArguments.Envs)
 	if envErr != nil {
 		return envErr
 	}
 
-	if showLogs {
-		app, err := repo.conn.GetApp(appName)
+	if parsedArguments.ShowLogs {
+		app, err := repo.conn.GetApp(parsedArguments.AppName)
 		if err != nil {
 			return err
 		}
@@ -481,8 +503,8 @@ func (repo *ApplicationRepo) PushApplication(appName, manifestPath, appPath, sta
 	return nil
 }
 
-// SetEnvironmentVariables sets passed envs with set-env to set variables dynamically
-func (repo *ApplicationRepo) SetEnvironmentVariables(appName string, envs []string) error {
+// setEnvironmentVariables sets passed envs with set-env to set variables dynamically
+func (repo *ApplicationRepo) setEnvironmentVariables(appName string, envs []string) error {
 	varArgs := []string{"set-env", appName}
 	//set all variables passed by --var
 	for _, envPair := range envs {
