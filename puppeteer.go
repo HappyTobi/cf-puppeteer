@@ -212,17 +212,18 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 	}
 }
 
-type StringSlice []string
+type stringSlice []string
 
-func (s *StringSlice) String() string {
+func (s *stringSlice) String() string {
 	return fmt.Sprint(*s)
 }
 
-func (s *StringSlice) Set(value string) error {
+func (s *stringSlice) Set(value string) error {
 	*s = append(*s, value)
 	return nil
 }
 
+//ParserArguments struct where all arguments will be parsed into
 type ParserArguments struct {
 	AppName                 string
 	ManifestPath            string
@@ -246,9 +247,9 @@ type ParserArguments struct {
 func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	flags := flag.NewFlagSet("zero-downtime-push", flag.ContinueOnError)
 
-	var envs StringSlice
-	var vars StringSlice
-	var varsFiles StringSlice
+	var envs stringSlice
+	var vars stringSlice
+	var varsFiles stringSlice
 
 	pta := &ParserArguments{}
 	flags.StringVar(&pta.ManifestPath, "f", "", "path to an application manifest")
