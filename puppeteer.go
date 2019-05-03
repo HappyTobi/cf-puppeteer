@@ -103,7 +103,30 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 		{
 			Forward: func() error {
 				//add v3 push
-				return appRepo.PushApplication(parsedArguments)
+				space, err := appRepo.conn.GetCurrentSpace()
+				if err != nil {
+					return err
+				}
+
+				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid)
+				if err != nil {
+					return err
+				}
+				//fmt.Printf("Cloud Foundry API response to GET call on %s:\n", appResponse)
+
+				createPackageResponse, err := appRepo.cf.CreatePackage(appResponse.GUID)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Cloud Foundry API response to GET call on %s:\n", createPackageResponse)
+
+				err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
+				if err != nil {
+					return err
+				}
+
+				return nil
+				//return appRepo.PushApplication(parsedArguments)
 			},
 		},
 		{
@@ -156,7 +179,7 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	var traceLogging bool
-	if os.Getenv("CF_PUPPETEER_TRACE") == "true" {
+	if os.Getenv("CF_PUPPETEER_TRACE") != "true" {
 		traceLogging = true
 	}
 	appRepo := NewApplicationRepo(cliConnection, traceLogging)
@@ -180,9 +203,9 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "cf-puppeteer",
 		Version: plugin.VersionType{
-			Major: 0,
+			Major: 1,
 			Minor: 0,
-			Build: 15,
+			Build: 0,
 		},
 		Commands: []plugin.Command{
 			{
