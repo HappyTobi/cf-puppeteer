@@ -1,11 +1,19 @@
 package cfResources
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/plugin"
 )
 
@@ -16,6 +24,7 @@ type CfResourcesInterface interface {
 	//Add methods here
 	PushApp(appName string, spaceGUID string) (*V3AppResponse, error)
 	CreatePackage(appGUID string) (*V3PackageResponse, error)
+	UploadApplication(appName string, applicationFiles string, targetUrl string) error
 
 	CreateBuild(packageGUID string) (*V3BuildResponse, error)
 }
@@ -24,6 +33,7 @@ type CfResourcesInterface interface {
 type ResourcesData struct {
 	Connection   plugin.CliConnection
 	TraceLogging bool
+	zipper       appfiles.Zipper
 }
 
 //NewResources create a new instance of CFResources
@@ -31,6 +41,7 @@ func NewResources(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 	return &ResourcesData{
 		Connection:   conn,
 		TraceLogging: traceLogging,
+		zipper:       &appfiles.ApplicationZipper{},
 	}
 }
 
@@ -46,7 +57,7 @@ type V3Apps struct {
 	} `json:"relationships"`
 	EnvironmentVariables struct {
 		Vars map[string]string `json:"var"`
-	} `json:"environmentVariables,omitempty"`
+	} `json:"environment_variables,omitempty"`
 }
 
 //V3AppResponse application response struct
@@ -59,12 +70,18 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string) (*V3App
 	path := fmt.Sprintf(`/v3/apps`)
 
 	var v3App V3Apps
+	v3App.Name = appName
 	v3App.Relationships.Space.Data.GUID = spaceGUID
 
 	//TODO move to function
 	appJSON, err := json.Marshal(v3App)
 	if err != nil {
 		return nil, err
+	}
+
+	if resource.TraceLogging {
+		fmt.Printf("send POST to route: %s with body:\n", path)
+		prettyPrintJSON(string(appJSON))
 	}
 	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
 		string(appJSON))
@@ -76,7 +93,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string) (*V3App
 	jsonResp := strings.Join(result, "")
 
 	if resource.TraceLogging {
-		fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
+		fmt.Printf("response from http call to path: %s was:\n", path)
 		prettyPrintJSON(jsonResp)
 	}
 
@@ -122,7 +139,13 @@ type V3Package struct {
 
 //V3PackageResponse create package response payload
 type V3PackageResponse struct {
-	GUID string `json:"guid"`
+	GUID  string `json:"guid"`
+	Links struct {
+		Upload struct {
+			Href   string `json:"href"`
+			Method string `json:"method"`
+		} `json:"upload"`
+	} `json:"links"`
 }
 
 //CreatePackage create a package with v3 cf api
@@ -137,6 +160,12 @@ func (resource *ResourcesData) CreatePackage(appGUID string) (*V3PackageResponse
 	if err != nil {
 		return nil, err
 	}
+
+	if resource.TraceLogging {
+		fmt.Printf("send POST to route: %s with body:\n", path)
+		prettyPrintJSON(string(appJSON))
+	}
+
 	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
 		string(appJSON))
 
@@ -147,7 +176,7 @@ func (resource *ResourcesData) CreatePackage(appGUID string) (*V3PackageResponse
 	jsonResp := strings.Join(result, "")
 
 	if resource.TraceLogging {
-		fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
+		fmt.Printf("response from http call to path: %s was:\n", path)
 		prettyPrintJSON(jsonResp)
 	}
 
@@ -159,15 +188,49 @@ func (resource *ResourcesData) CreatePackage(appGUID string) (*V3PackageResponse
 	return &response, nil
 }
 
-/*
-func (resource *ResourcesData) uploadApplication(packageGUID string) error {
-	path := fmt.Sprintf(`/v3/packages/%s/upload`, packageGUID)
+//UploadApplication upload a zip file to the created package
+func (resource *ResourcesData) UploadApplication(appName string, applicationFiles string, targetURL string) error {
+	//TODO
+	fmt.Printf("is zip %t", resource.zipper.IsZipFile(applicationFiles))
 
-	//TODO BUILD CUSTOM CURL COMMAND
-	_, err := resource.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json")
+	zipFile, err := resource.zipUploadFile(appName, applicationFiles)
+	if err != nil {
+		return err
+	}
 
+	file, err := os.Open(zipFile)
+	defer file.Close()
+
+	token, _ := resource.Connection.AccessToken()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("bits", filepath.Base(zipFile))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, file)
+	defer writer.Close()
+
+	req, err := http.NewRequest("POST", targetURL, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("post error: %s\n", err)
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+	message, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf(string(message))
+	//defer os.Remove(zipFile.Name())
 	return err
 }
+
+/*
 
 type V3Build struct {
 	Package struct {
@@ -240,6 +303,56 @@ func (resource *ResourcesData) CreateBuild(packageGUID string) (*V3BuildResponse
 		return nil, err
 	}
 	return &response, nil
+}
+
+//TODO optimize an fix zip issue
+// drop own implementation switch to appfiles/zipper
+// see push.go file from cf  - GatherFiles
+//zipUploadFile upload the application files
+func (resource *ResourcesData) zipUploadFile(appName string, fileName string) (string, error) {
+	zipFileName := fmt.Sprintf("%s%s.zip", os.TempDir(), appName)
+	if resource.TraceLogging {
+		fmt.Printf("try to create zip file: %s from passed file / folder %s \n", zipFileName, filepath.Base(fileName))
+	}
+
+	newZipFile, err := os.Create(zipFileName)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	defer zipWriter.Close()
+
+	fileToZip, err := os.Open(fileName)
+	if err != nil {
+		return "", err
+	}
+	defer fileToZip.Close()
+
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return "", err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return "", err
+	}
+
+	header.Name = fileName
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = io.Copy(writer, fileToZip)
+	fmt.Printf("return zip file: %s\n", zipFileName)
+	return zipFileName, err
 }
 
 //TODO step 8 - 13
