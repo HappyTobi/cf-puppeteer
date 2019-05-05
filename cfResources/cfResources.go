@@ -22,11 +22,26 @@ import (
 //CfResourcesInterface interface for cfResource usage
 type CfResourcesInterface interface {
 	//Add methods here
+	//Step1
 	PushApp(appName string, spaceGUID string) (*V3AppResponse, error)
+	//Step 3
 	CreatePackage(appGUID string) (*V3PackageResponse, error)
-	UploadApplication(appName string, applicationFiles string, targetUrl string) error
-
+	//Step 4 & 5
+	UploadApplication(appName string, applicationFiles string, targetURL string) error
+	//Step 6
 	CreateBuild(packageGUID string) (*V3BuildResponse, error)
+	//Step 7
+	CheckBuildState(buildGUID string) (*V3BuildResponse, error)
+	//Step 8
+	GetDropletGUID(buildGUID string) (*V3BuildResponse, error)
+	//Step 9
+	AssignApp(appGUID string, dropletGUID string) error
+	//Step 10
+	//CreateRoute do with v2 command
+	//Step 11
+	RouteMapping(appGUID string, routeGUID string) error
+	//Step 12
+	StartApp(appGUID string) error
 }
 
 //ResourcesData struct to hold important instances to run push
@@ -111,6 +126,13 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string) (*V3App
 	return &response, nil
 }
 
+//StartApp start app on cf
+func (resource *ResourcesData) StartApp(appGUID string) error {
+	path := fmt.Sprintf(`/v3/apps/%s/actions/start`, appGUID)
+	_, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json")
+	return err
+}
+
 // PrettyPrintJSON takes the given JSON string, makes it pretty, and prints it out.
 func prettyPrintJSON(jsonUgly string) error {
 	jsonPretty := &bytes.Buffer{}
@@ -191,12 +213,27 @@ func (resource *ResourcesData) CreatePackage(appGUID string) (*V3PackageResponse
 //UploadApplication upload a zip file to the created package
 func (resource *ResourcesData) UploadApplication(appName string, applicationFiles string, targetURL string) error {
 	//TODO
-	fmt.Printf("is zip %t", resource.zipper.IsZipFile(applicationFiles))
+	zipFile := applicationFiles
+	if !resource.zipper.IsZipFile(applicationFiles) {
+		zipFileName := fmt.Sprintf("%s%s.zip", os.TempDir(), appName)
+		newZipFile, err := os.Create(zipFileName)
 
-	zipFile, err := resource.zipUploadFile(appName, applicationFiles)
+		if err != nil {
+			return err
+		}
+		defer newZipFile.Close()
+
+		err = resource.zipper.Zip(applicationFiles, newZipFile)
+		if err != nil {
+			return err
+		}
+		zipFile = zipFileName
+	}
+
+	/*zipFile, err := resource.zipUploadFile(appName, applicationFiles)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	file, err := os.Open(zipFile)
 	defer file.Close()
@@ -230,27 +267,55 @@ func (resource *ResourcesData) UploadApplication(appName string, applicationFile
 	return err
 }
 
-/*
+//CheckBuildState check the pushed application is staged or not
+func (resource *ResourcesData) CheckBuildState(buildGUID string) (*V3BuildResponse, error) {
+	path := fmt.Sprintf(`/v3/builds/%s`, buildGUID)
 
-type V3Build struct {
-	Package struct {
-		guid string `json:"guid"`
-	} `json:"package"`
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("Cloud Foundry API response while checking build state %s:\n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	var response V3BuildResponse
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
 }
 
-func (resource *ResourcesData) stagePackage(packageGUID string) error {
-	path := fmt.Sprintf(`/v3/builds`)
-	appData := &V3Build{}
+//GetDropletGUID get dropletGUID for uploaded and staged build
+func (resource *ResourcesData) GetDropletGUID(buildGUID string) (*V3BuildResponse, error) {
+	path := fmt.Sprintf(`/v3/builds/%s`, buildGUID)
 
-	//TODO check alt commands
-	appJSON, err := json.Marshal(appData)
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
+
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err := resource.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d", string(appJSON))
 
-	return err
-}*/
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("Cloud Foundry API response while getting build information (droplet) %s:\n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	var response V3BuildResponse
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
+}
 
 //V3BuildPackage represents post model of V3BuildPackage body
 type V3BuildPackage struct {
@@ -267,7 +332,11 @@ type V3BuildPackage struct {
 
 //V3BuildResponse represents response ot the created build
 type V3BuildResponse struct {
-	GUID string `json:"guid"`
+	GUID    string `json:"guid"`
+	State   string `json:"state"`
+	Droplet struct {
+		GUID string `json:"guid"`
+	} `json:"droplet"`
 }
 
 //CreateBuild with packagedGUID
@@ -303,6 +372,61 @@ func (resource *ResourcesData) CreateBuild(packageGUID string) (*V3BuildResponse
 		return nil, err
 	}
 	return &response, nil
+}
+
+//V3AppsDroplet -> maybe use V3Apps only
+type V3AppsDroplet struct {
+	Data struct {
+		GUID string `json:"guid"`
+	} `json:"data"`
+}
+
+//AssignApp to a created droplet guid
+func (resource *ResourcesData) AssignApp(appGUID string, dropletGUID string) error {
+	path := fmt.Sprintf(`/v3/apps/%s/relationships/current_droplet`, appGUID)
+
+	var v3AppsDroplet V3AppsDroplet
+	v3AppsDroplet.Data.GUID = dropletGUID
+
+	appJSON, err := json.Marshal(v3AppsDroplet)
+	if err != nil {
+		return err
+	}
+
+	_, err = resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "PATCH", "-H", "Content-type: application/json", "-d",
+		string(appJSON))
+
+	return err
+}
+
+type V3RouteMapping struct {
+	Relationships struct {
+		App struct {
+			GUID string `json:"guid"`
+		} `json:"app"`
+		Route struct {
+			GUID string `json:"guid"`
+		} `json:"route"`
+	} `json:"relationships"`
+}
+
+//RouteMapping map route to application
+func (resource *ResourcesData) RouteMapping(appGUID string, routeGUID string) error {
+	path := fmt.Sprintf(`v3/route_mappings`)
+
+	var v3RouteMapping V3RouteMapping
+	v3RouteMapping.Relationships.App.GUID = appGUID
+	v3RouteMapping.Relationships.Route.GUID = routeGUID
+
+	appJSON, err := json.Marshal(v3RouteMapping)
+	if err != nil {
+		return err
+	}
+
+	_, err = resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
+		string(appJSON))
+
+	return err
 }
 
 //TODO optimize an fix zip issue
@@ -354,5 +478,3 @@ func (resource *ResourcesData) zipUploadFile(appName string, fileName string) (s
 	fmt.Printf("return zip file: %s\n", zipFileName)
 	return zipFileName, err
 }
-
-//TODO step 8 - 13
