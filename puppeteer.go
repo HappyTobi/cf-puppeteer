@@ -108,23 +108,68 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					return err
 				}
 
-				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid)
+				applicationBuildpacks := parsedArguments.Manifest.ApplicationManifests[0].Buildpacks
+				applicationStack := parsedArguments.Manifest.ApplicationManifests[0].Stack
+
+				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid, applicationBuildpacks, applicationStack)
 				if err != nil {
 					return err
 				}
-				//fmt.Printf("Cloud Foundry API response to GET call on %s:\n", appResponse)
+
+				appRepo.cf.AssignAppManifest(appResponse.Links.Self.Href, parsedArguments.ManifestPath)
 
 				createPackageResponse, err := appRepo.cf.CreatePackage(appResponse.GUID)
 				if err != nil {
 					return err
 				}
-				fmt.Printf("Cloud Foundry API response to GET call on %s:\n", createPackageResponse)
 
-				err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
+				createPackageResponse, err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
 				if err != nil {
 					return err
 				}
 
+				duration, _ := time.ParseDuration("5s")
+				fmt.Printf("Upload application [")
+				for createPackageResponse.State != "FAILED" &&
+					createPackageResponse.State != "READY" &&
+					createPackageResponse.State != "EXPIRED" {
+					time.Sleep(duration)
+					createPackageResponse, err = appRepo.cf.CheckPackageState(createPackageResponse.GUID)
+					fmt.Printf("=")
+					if err != nil {
+						return nil
+					}
+				}
+
+				fmt.Printf("] done \n")
+
+				buildResponse, err := appRepo.cf.CreateBuild(createPackageResponse.GUID)
+				if err != nil {
+					return err
+				}
+
+				fmt.Printf("Wait while loading")
+				for buildResponse.State != "FAILED" &&
+					buildResponse.State != "STAGED" {
+					time.Sleep(duration)
+					buildResponse, err = appRepo.cf.CheckBuildState(buildResponse.GUID)
+					fmt.Printf("=")
+					if err != nil {
+						return nil
+					}
+				}
+				fmt.Printf("done \n")
+
+				dropletResponse, err := appRepo.cf.GetDropletGUID(buildResponse.GUID)
+				fmt.Printf("get droplet guid %s \n", dropletResponse)
+
+				err = appRepo.cf.AssignApp(appResponse.GUID, dropletResponse.GUID)
+				fmt.Printf("app assigned \n")
+
+				err = appRepo.cf.StartApp(appResponse.GUID)
+				if err != nil {
+					return err
+				}
 				return nil
 				//return appRepo.PushApplication(parsedArguments)
 			},
@@ -264,6 +309,7 @@ type ParserArguments struct {
 	ShowLogs                bool
 	DockerImage             string
 	DockerUserName          string
+	Manifest                manifest.Manifest
 }
 
 // ParseArgs parses the command line arguments
@@ -320,6 +366,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	if err != nil {
 		return pta, ErrManifest
 	}
+	pta.Manifest = parsedManifest
 
 	/*if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
 	    //TODO use dockerImage stuff and pass to push command
