@@ -21,6 +21,7 @@ import (
 	"github.com/happytobi/cf-puppeteer/cfResources"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
+	"github.com/happytobi/cf-puppeteer/v2cfResources"
 )
 
 func fatalIf(err error) {
@@ -123,6 +124,23 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					return err
 				}
 
+				domains, err := appRepo.cf.GetDomain(parsedArguments.Manifest.ApplicationManifests[0].Routes)
+				if err != nil {
+					return err
+				}
+
+				for _, route := range *domains {
+					routeResponse, err := appRepo.cf2.CreateRoute(space.Guid, route.DomainGUID, route.Host)
+					if err != nil {
+						return err
+					}
+					err = appRepo.cf.RouteMapping(appResponse.GUID, routeResponse.Metadata.GUID)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("route generated and added to application - host: %s - domain: %s \n", route.Host, route.DomainGUID)
+				}
+
 				createPackageResponse, err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
 				if err != nil {
 					return err
@@ -141,14 +159,14 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					}
 				}
 
-				fmt.Printf("] done \n")
+				fmt.Printf("] - done \n")
 
 				buildResponse, err := appRepo.cf.CreateBuild(createPackageResponse.GUID)
 				if err != nil {
 					return err
 				}
 
-				fmt.Printf("Wait while loading")
+				fmt.Printf("waiting while creating the application [")
 				for buildResponse.State != "FAILED" &&
 					buildResponse.State != "STAGED" {
 					time.Sleep(duration)
@@ -158,7 +176,7 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 						return nil
 					}
 				}
-				fmt.Printf("done \n")
+				fmt.Printf("] - done \n")
 
 				dropletResponse, err := appRepo.cf.GetDropletGUID(buildResponse.GUID)
 				fmt.Printf("get droplet guid %s \n", dropletResponse)
@@ -166,12 +184,11 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				err = appRepo.cf.AssignApp(appResponse.GUID, dropletResponse.GUID)
 				fmt.Printf("app assigned \n")
 
-				err = appRepo.cf.StartApp(appResponse.GUID)
+				/*err = appRepo.cf.StartApp(appResponse.GUID)
 				if err != nil {
 					return err
-				}
+				}*/
 				return nil
-				//return appRepo.PushApplication(parsedArguments)
 			},
 		},
 		{
@@ -443,6 +460,7 @@ type ApplicationRepo struct {
 	conn         plugin.CliConnection
 	traceLogging bool
 	cf           cfResources.CfResourcesInterface
+	cf2          v2cfResources.V2CfResourcesInterface
 }
 
 func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *ApplicationRepo {
@@ -450,6 +468,7 @@ func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *Applicati
 		conn:         conn,
 		traceLogging: traceLogging,
 		cf:           cfResources.NewResources(conn, traceLogging),
+		cf2:          v2cfResources.NewResources(conn, traceLogging),
 	}
 }
 
