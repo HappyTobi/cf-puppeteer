@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,6 +45,7 @@ type CfResourcesInterface interface {
 	//Stuff
 	AssignAppManifest(appLink string, manifestPath string) error
 	CheckPackageState(packageGUID string) (*V3PackageResponse, error)
+	GetDomain(domains []map[string]string) (*[]V3Routes, error)
 }
 
 //ResourcesData struct to hold important instances to run push
@@ -278,12 +280,164 @@ func (resource *ResourcesData) CheckPackageState(packageGUID string) (*V3Package
 	return &response, nil
 }
 
+//V3DomainResponse reponse while loading domains
+type V3DomainResponse struct {
+	Pagination struct {
+		TotalResults int `json:"total_results"`
+		TotalPages   int `json:"total_pages"`
+		First        struct {
+			Href string `json:"href"`
+		} `json:"first"`
+		Last struct {
+			Href string `json:"href"`
+		} `json:"last"`
+		Next struct {
+			Href string `json:"href"`
+		} `json:"next"`
+		Previous interface{} `json:"previous"`
+	} `json:"pagination"`
+	Resources []struct {
+		GUID          string    `json:"guid"`
+		CreatedAt     time.Time `json:"created_at"`
+		UpdatedAt     time.Time `json:"updated_at"`
+		Name          string    `json:"name"`
+		Internal      bool      `json:"internal"`
+		Relationships struct {
+			Organization struct {
+				Data interface{} `json:"data"`
+			} `json:"organization"`
+			SharedOrganizations struct {
+				Data []interface{} `json:"data"`
+			} `json:"shared_organizations"`
+		} `json:"relationships"`
+		Links struct {
+			Self struct {
+				Href string `json:"href"`
+			} `json:"self"`
+		} `json:"links"`
+	} `json:"resources"`
+}
+
+type V3Routes struct {
+	Host       string
+	DomainGUID string
+}
+
+//TODO optimize code
+//ADD TCP option
+//GetDomain create a package with v3 cf api
+func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]V3Routes, error) {
+	path := fmt.Sprintf(`/v3/domains`)
+
+	if resource.TraceLogging {
+		fmt.Printf("call api %s and search for domain name: %s", path, domains)
+	}
+
+	response, err := resource.getDomain(path)
+	if err != nil {
+		return nil, err
+	}
+
+	domainGUID := make(map[string]V3Routes)
+
+	for _, domainRes := range response.Resources {
+		for _, routes := range domains {
+			for _, domain := range routes {
+				_, exists := domainGUID[domain]
+				if strings.Contains(domain, domainRes.Name) && !exists {
+					hostName := strings.ReplaceAll(domain, domainRes.Name, "")
+					hostName = strings.TrimRight(hostName, ".")
+					newRoute := &V3Routes{
+						Host:       hostName,
+						DomainGUID: domainRes.GUID,
+					}
+					domainGUID[domain] = *newRoute
+				}
+			}
+		}
+	}
+
+	for response.Pagination.Next.Href != "" && len(domainGUID) <= 0 {
+		response, err := resource.getDomain(response.Pagination.Next.Href)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, domainRes := range response.Resources {
+			for _, routes := range domains {
+				for _, domain := range routes {
+					_, exists := domainGUID[domain]
+					if strings.Contains(domain, domainRes.Name) && !exists {
+						hostName := strings.ReplaceAll(domain, domainRes.Name, "")
+						hostName = strings.TrimRight(hostName, ".")
+						newRoute := &V3Routes{
+							Host:       hostName,
+							DomainGUID: domainRes.GUID,
+						}
+						domainGUID[domain] = *newRoute
+					}
+				}
+			}
+		}
+	}
+
+	var domainsFound []V3Routes
+	for _, v := range domainGUID {
+		domainsFound = append(domainsFound, v)
+	}
+
+	if resource.TraceLogging {
+		fmt.Printf("domainGUID found return: %s", domainsFound)
+	}
+
+	return &domainsFound, err
+}
+
+func (resource *ResourcesData) getDomain(path string) (*V3DomainResponse, error) {
+	var response V3DomainResponse
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("response from get call to path: %s was: \n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(response.Resources, func(i, j int) bool {
+		return response.Resources[i].Name < response.Resources[j].Name
+	})
+	return &response, nil
+}
+
 //UploadApplication upload a zip file to the created package
 func (resource *ResourcesData) UploadApplication(appName string, applicationFiles string, targetURL string) (*V3PackageResponse, error) {
-	/*if !resource.zipper.IsZipFile(applicationFiles) {
-	zipFileName := fmt.Sprintf("%s%s.zip", os.TempDir(), appName)
-	newZipFile, err := os.Create(zipFileName)
-	*/
+	if !resource.zipper.IsZipFile(applicationFiles) {
+
+		zipFileName := fmt.Sprintf("%s%s.zip", os.TempDir(), appName)
+		newZipFile, err := os.Create(zipFileName)
+
+		if err != nil {
+			return nil, err
+		}
+		defer newZipFile.Close()
+
+		err = resource.zipper.Zip(applicationFiles, newZipFile)
+
+		if resource.TraceLogging {
+			fmt.Printf("zip will be created with from folder: %s - zip will be written as: %s \n", applicationFiles, zipFileName)
+		}
+		applicationFiles = zipFileName
+	}
+
 	file, err := os.Open(applicationFiles)
 	if err != nil {
 		return nil, err
@@ -497,15 +651,20 @@ func (resource *ResourcesData) AssignApp(appGUID string, dropletGUID string) err
 func (resource *ResourcesData) AssignAppManifest(appLink string, manifestPath string) error {
 	path := fmt.Sprintf(`%s/actions/apply_manifest`, appLink)
 
+	if resource.TraceLogging {
+		fmt.Printf("Apply manifest to path %s and use manifestFilePath %s:\n", path, manifestPath)
+	}
+
 	file, err := os.Open(manifestPath)
 	if err != nil {
+		fmt.Printf("could not read manifest from path %s error: %s", manifestPath, err)
 		panic(err)
 	}
 	defer file.Close()
 
 	fileinfo, err := file.Stat()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("manifest file stat error %s", err)
 		return err
 	}
 
@@ -529,12 +688,16 @@ func (resource *ResourcesData) AssignAppManifest(appLink string, manifestPath st
 
 	client := &http.Client{}
 	res, err := client.Do(request)
+	if err != nil {
+		fmt.Printf("Error while calling the apply manifest url %s - error: %s \n", path, err)
+		return err
+	}
 
 	result, _ := ioutil.ReadAll(res.Body)
 	jsonResp := string(result)
 
 	if resource.TraceLogging {
-		fmt.Printf("Cloud Foundry API response while appling manifest %s:\n", path)
+		fmt.Printf("response while appling manifest to path %s - status %s\n", path, res.Status)
 		prettyPrintJSON(jsonResp)
 	}
 
@@ -570,6 +733,15 @@ func (resource *ResourcesData) RouteMapping(appGUID string, routeGUID string) er
 
 	_, err = resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
 		string(appJSON))
+
+	/*
+				210003
+				{
+		    "description": "The host is taken: proto-business-hydra-node-red-dev",
+		    "error_code": "CF-RouteHostTaken",
+		    "code": 210003
+		}
+	*/
 
 	return err
 }
