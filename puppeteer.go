@@ -143,7 +143,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				var venRoutes []string
 
 				if venApp != nil {
-					fmt.Printf("load vendorapp routes \n")
 					venRoutes, err = appRepo.cf.GetRoutesApp(venApp.Metadata.GUID)
 					if err != nil {
 						return err
@@ -163,13 +162,24 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					fmt.Printf("route generated and added to application - host: %s - domain: %s \n", route.Host, route.DomainGUID)
 				}
 
-				//add venroutes -> todo do it later
+				//add venroutes -> todo do it later?
 				for _, route := range venRoutes {
 					err = appRepo.cf.RouteMapping(appResponse.GUID, route)
 					if err != nil {
 						return err
 					}
 					fmt.Printf("vendor routes mapped to application - route guid %s\n", route)
+				}
+
+				//map services
+				serviceGUIDs, err := appRepo.cf2.FindServiceInstances(parsedArguments.Manifest.ApplicationManifests[0].Services, space.Guid)
+				if err != nil {
+					return err
+				}
+
+				err = appRepo.cf.CreateServiceBinding(appResponse.GUID, serviceGUIDs)
+				if err != nil {
+					return err
 				}
 
 				createPackageResponse, err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
@@ -192,12 +202,12 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 
 				fmt.Printf("] - done \n")
 
-				buildResponse, err := appRepo.cf.CreateBuild(createPackageResponse.GUID)
+				buildResponse, err := appRepo.cf.CreateBuild(createPackageResponse.GUID, applicationBuildpacks)
 				if err != nil {
 					return err
 				}
 
-				fmt.Printf("waiting while creating the application [")
+				fmt.Printf("Waiting while creating the application [")
 				for buildResponse.State != "FAILED" &&
 					buildResponse.State != "STAGED" {
 					time.Sleep(duration)
@@ -210,15 +220,9 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				fmt.Printf("] - done \n")
 
 				dropletResponse, err := appRepo.cf.GetDropletGUID(buildResponse.GUID)
-				fmt.Printf("get droplet guid %s \n", dropletResponse)
 
 				err = appRepo.cf.AssignApp(appResponse.GUID, dropletResponse.GUID)
-				fmt.Printf("app assigned \n")
 
-				/*err = appRepo.cf.StartApp(appResponse.GUID)
-				if err != nil {
-					return err
-				}*/
 				return nil
 			},
 		},
@@ -272,7 +276,7 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	var traceLogging bool
-	if os.Getenv("CF_PUPPETEER_TRACE") != "true" {
+	if os.Getenv("CF_PUPPETEER_TRACE") == "true" {
 		traceLogging = true
 	}
 	appRepo := NewApplicationRepo(cliConnection, traceLogging)
@@ -549,81 +553,6 @@ func (repo *ApplicationRepo) SetHealthCheckV3(parsedArguments *ParserArguments, 
 	err = repo.UpdateApplicationProcessWebInformation(appProcesEntity.GUID, applicationEntity)
 	return err
 }
-
-/*
-// PushApplication executes the Cloud Foundry push command for the specified application.
-// It returns any error that prevents a successful completion of the operation.
-func (repo *ApplicationRepo) PushApplication(parsedArguments *ParserArguments) error {
-	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start"}
-
-	if parsedArguments.AppPath != "" {
-		args = append(args, "-p", parsedArguments.AppPath)
-	}
-
-	if parsedArguments.StackName != "" {
-		args = append(args, "-s", parsedArguments.StackName)
-	}
-
-	/* always append timeout
-	timeout := strconv.Itoa(parsedArguments.Timeout)
-	args = append(args, "-t", timeout)
-	for _, varPair := range parsedArguments.Vars {
-		args = append(args, "--var", varPair)
-	}
-
-	for _, varsFile := range parsedArguments.VarsFiles {
-		args = append(args, "--vars-file", varsFile)
-	}
-
-	_, err := repo.conn.CliCommand(args...)
-	if err != nil {
-		return err
-	}
-
-	envErr := repo.setEnvironmentVariables(parsedArguments.AppName, parsedArguments.Envs)
-	if envErr != nil {
-		return envErr
-	}
-
-	if parsedArguments.ShowLogs {
-		app, err := repo.conn.GetApp(parsedArguments.AppName)
-		if err != nil {
-			return err
-		}
-		dopplerEndpoint, err := repo.conn.DopplerEndpoint()
-		if err != nil {
-			return err
-		}
-		token, err := repo.conn.AccessToken()
-		if err != nil {
-			return err
-		}
-
-		cons := consumer.New(dopplerEndpoint, nil, nil)
-		defer cons.Close()
-
-		messages, errors := cons.TailingLogs(app.Guid, token)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		go func() {
-			for {
-				select {
-				case m := <-messages:
-					if m.GetSourceType() != "STG" { // skip STG messages as the cf tool already prints them
-						os.Stderr.WriteString(logs.NewNoaaLogMessage(m).ToLog(time.Local) + "\n")
-					}
-				case e := <-errors:
-					log.Println("error reading logs:", e)
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	return nil
-}*/
 
 // setEnvironmentVariables sets passed envs with set-env to set variables dynamically
 func (repo *ApplicationRepo) setEnvironmentVariables(appName string, envs []string) error {
