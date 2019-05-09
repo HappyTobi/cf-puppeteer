@@ -2,22 +2,17 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/cli/cf/api/logs"
 	"code.cloudfoundry.org/cli/plugin"
-	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/happytobi/cf-puppeteer/cfResources"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
@@ -112,7 +107,16 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				applicationBuildpacks := parsedArguments.Manifest.ApplicationManifests[0].Buildpacks
 				applicationStack := parsedArguments.Manifest.ApplicationManifests[0].Stack
 
-				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid, applicationBuildpacks, applicationStack)
+				//move to own function
+				//TODO
+				var mergedEnvs []string
+				mergedEnvs = append(mergedEnvs, parsedArguments.Envs...)
+				for k, v := range parsedArguments.Manifest.ApplicationManifests[0].Env {
+					mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s=%s", k, v))
+				}
+
+				//TODO add options? -t --vars-file -var
+				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid, applicationBuildpacks, applicationStack, mergedEnvs)
 				if err != nil {
 					return err
 				}
@@ -129,6 +133,24 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					return err
 				}
 
+				//TODO
+				venApp, err = appRepo.GetAppMetadata(venName)
+				if err != ErrAppNotFound && err != nil {
+					fmt.Printf("metadata error %s \n", err)
+					return err
+				}
+
+				var venRoutes []string
+
+				if venApp != nil {
+					fmt.Printf("load vendorapp routes \n")
+					venRoutes, err = appRepo.cf.GetRoutesApp(venApp.Metadata.GUID)
+					if err != nil {
+						return err
+					}
+				}
+
+				//TODO
 				for _, route := range *domains {
 					routeResponse, err := appRepo.cf2.CreateRoute(space.Guid, route.DomainGUID, route.Host)
 					if err != nil {
@@ -139,6 +161,15 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 						return err
 					}
 					fmt.Printf("route generated and added to application - host: %s - domain: %s \n", route.Host, route.DomainGUID)
+				}
+
+				//add venroutes -> todo do it later
+				for _, route := range venRoutes {
+					err = appRepo.cf.RouteMapping(appResponse.GUID, route)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("vendor routes mapped to application - route guid %s\n", route)
 				}
 
 				createPackageResponse, err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
@@ -519,6 +550,7 @@ func (repo *ApplicationRepo) SetHealthCheckV3(parsedArguments *ParserArguments, 
 	return err
 }
 
+/*
 // PushApplication executes the Cloud Foundry push command for the specified application.
 // It returns any error that prevents a successful completion of the operation.
 func (repo *ApplicationRepo) PushApplication(parsedArguments *ParserArguments) error {
@@ -532,7 +564,7 @@ func (repo *ApplicationRepo) PushApplication(parsedArguments *ParserArguments) e
 		args = append(args, "-s", parsedArguments.StackName)
 	}
 
-	/* always append timeout */
+	/* always append timeout
 	timeout := strconv.Itoa(parsedArguments.Timeout)
 	args = append(args, "-t", timeout)
 	for _, varPair := range parsedArguments.Vars {
@@ -591,7 +623,7 @@ func (repo *ApplicationRepo) PushApplication(parsedArguments *ParserArguments) e
 	}
 
 	return nil
-}
+}*/
 
 // setEnvironmentVariables sets passed envs with set-env to set variables dynamically
 func (repo *ApplicationRepo) setEnvironmentVariables(appName string, envs []string) error {
@@ -653,6 +685,9 @@ func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppResourcesEntity
 
 	var metaDataResponseEntity MetaDataEntity
 	err = json.Unmarshal([]byte(jsonResp), &metaDataResponseEntity)
+	if repo.traceLogging {
+		fmt.Printf("response from getAppMetadata: %s was: %s \n", path, metaDataResponseEntity)
+	}
 
 	if err != nil {
 		return nil, err

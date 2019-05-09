@@ -23,7 +23,7 @@ import (
 //CfResourcesInterface interface for cfResource usage
 type CfResourcesInterface interface {
 	//Step1
-	PushApp(appName string, spaceGUID string, buildpacks []string, stack string) (*V3AppResponse, error)
+	PushApp(appName string, spaceGUID string, buildpacks []string, stack string, envVars []string) (*V3AppResponse, error)
 	//Step 3
 	CreatePackage(appGUID string) (*V3PackageResponse, error)
 	//Step 4 & 5
@@ -46,6 +46,8 @@ type CfResourcesInterface interface {
 	AssignAppManifest(appLink string, manifestPath string) error
 	CheckPackageState(packageGUID string) (*V3PackageResponse, error)
 	GetDomain(domains []map[string]string) (*[]V3Routes, error)
+	GetApp(appGUID string) (*V3AppResponse, error)
+	GetRoutesApp(appGUID string) ([]string, error)
 }
 
 //ResourcesData struct to hold important instances to run push
@@ -141,7 +143,7 @@ type V3AppResponse struct {
 }
 
 //PushApp push app with v3 api to cloudfoundry
-func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpacks []string, stack string) (*V3AppResponse, error) {
+func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpacks []string, stack string, envVars []string) (*V3AppResponse, error) {
 	path := fmt.Sprintf(`/v3/apps`)
 
 	var v3App V3Apps
@@ -150,6 +152,16 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 	v3App.Lifecycle.LifecycleType = "buildpack"
 	v3App.Lifecycle.LifecycleData.Stack = stack
 	v3App.Lifecycle.LifecycleData.Buildpacks = buildpacks
+
+	envs := make(map[string]string)
+	for _, v := range envVars {
+		envPair := strings.Split(v, "=")
+		envKey := strings.TrimSpace(envPair[0])
+		envVal := strings.TrimSpace(envPair[1])
+		envs[envKey] = envVal
+	}
+	fmt.Printf("add env vairbales to post body %s \n", envs)
+	v3App.EnvironmentVariables.Vars = envs
 
 	//TODO move to function
 	appJSON, err := json.Marshal(v3App)
@@ -181,6 +193,31 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 		return nil, err
 	}
 
+	return &response, nil
+}
+
+//GetApp fetch all informations about an app with the appGUID
+func (resource *ResourcesData) GetApp(appGUID string) (*V3AppResponse, error) {
+	path := fmt.Sprintf(`/v3/apps/%s`, appGUID)
+
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("response from get call GetApp to path: %s was: \n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	var response V3AppResponse
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	if err != nil {
+		return nil, err
+	}
 	return &response, nil
 }
 
@@ -387,7 +424,7 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]V3Rout
 	}
 
 	if resource.TraceLogging {
-		fmt.Printf("domainGUID found return: %s", domainsFound)
+		fmt.Printf("domainGUID found return: %s \n", domainsFound)
 	}
 
 	return &domainsFound, err
@@ -645,6 +682,75 @@ func (resource *ResourcesData) AssignApp(appGUID string, dropletGUID string) err
 		string(appJSON))
 
 	return err
+}
+
+type V3RouteMappingResponse struct {
+	Pagination struct {
+		TotalResults int `json:"total_results"`
+		TotalPages   int `json:"total_pages"`
+		First        struct {
+			Href string `json:"href"`
+		} `json:"first"`
+		Last struct {
+			Href string `json:"href"`
+		} `json:"last"`
+		Next struct {
+			Href string `json:"href"`
+		} `json:"next"`
+		Previous interface{} `json:"previous"`
+	} `json:"pagination"`
+	Resources []struct {
+		GUID      string    `json:"guid"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Weight    int       `json:"weight"`
+		Links     struct {
+			Self struct {
+				Href string `json:"href"`
+			} `json:"self"`
+			App struct {
+				Href string `json:"href"`
+			} `json:"app"`
+			Route struct {
+				Href string `json:"href"`
+			} `json:"route"`
+			Process struct {
+				Href string `json:"href"`
+			} `json:"process"`
+		} `json:"links"`
+	} `json:"resources"`
+}
+
+//AssignApp to a created droplet guid
+func (resource *ResourcesData) GetRoutesApp(appGUID string) ([]string, error) {
+	path := fmt.Sprintf(`/v3/apps/%s/route_mappings`, appGUID)
+	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
+	if err != nil {
+		fmt.Printf("Error while calling the apply manifest url %s - error: %s \n", path, err)
+		return nil, err
+	}
+
+	var response V3RouteMappingResponse
+	jsonResp := strings.Join(result, "")
+
+	if resource.TraceLogging {
+		fmt.Printf("response from get call to path: %s was: \n", path)
+		prettyPrintJSON(jsonResp)
+	}
+
+	err = json.Unmarshal([]byte(jsonResp), &response)
+	var routeGUIDs []string
+	for _, mapResource := range response.Resources {
+		count := strings.LastIndex(mapResource.Links.Route.Href, "/")
+		if count > 0 {
+			routeGUIDs = append(routeGUIDs, mapResource.Links.Route.Href[count+1:])
+		}
+	}
+
+	if resource.TraceLogging {
+		fmt.Printf("return used routes from vendor app %s\n", routeGUIDs)
+	}
+	return routeGUIDs, err
 }
 
 //AssignAppManifest assign an appManifest
