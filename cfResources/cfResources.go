@@ -1,7 +1,6 @@
 package cfResources
 
 import (
-	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -29,7 +28,7 @@ type CfResourcesInterface interface {
 	//Step 4 & 5
 	UploadApplication(appName string, applicationFiles string, targetURL string) (*V3PackageResponse, error)
 	//Step 6
-	CreateBuild(packageGUID string) (*V3BuildResponse, error)
+	CreateBuild(packageGUID string, buildpacks []string) (*V3BuildResponse, error)
 	//Step 7
 	CheckBuildState(buildGUID string) (*V3BuildResponse, error)
 	//Step 8
@@ -37,7 +36,6 @@ type CfResourcesInterface interface {
 	//Step 9
 	AssignApp(appGUID string, dropletGUID string) error
 	//Step 10
-	//CreateRoute?
 	//Step 11
 	RouteMapping(appGUID string, routeGUID string) error
 	//Step 12
@@ -48,6 +46,7 @@ type CfResourcesInterface interface {
 	GetDomain(domains []map[string]string) (*[]V3Routes, error)
 	GetApp(appGUID string) (*V3AppResponse, error)
 	GetRoutesApp(appGUID string) ([]string, error)
+	CreateServiceBinding(appGUID string, serviceInstanceGUID []string) error
 }
 
 //ResourcesData struct to hold important instances to run push
@@ -160,7 +159,6 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 		envVal := strings.TrimSpace(envPair[1])
 		envs[envKey] = envVal
 	}
-	fmt.Printf("add env vairbales to post body %s \n", envs)
 	v3App.EnvironmentVariables.Vars = envs
 
 	//TODO move to function
@@ -619,12 +617,16 @@ type V3BuildResponse struct {
 }
 
 //CreateBuild with packagedGUID
-func (resource *ResourcesData) CreateBuild(packageGUID string) (*V3BuildResponse, error) {
+func (resource *ResourcesData) CreateBuild(packageGUID string, buildpacks []string) (*V3BuildResponse, error) {
 	path := fmt.Sprintf(`/v3/builds`)
 	var v3buildPackage V3BuildPackage
 	v3buildPackage.Package.GUID = packageGUID
 	v3buildPackage.Lifecycle.LifecycleType = "buildpack"
-	v3buildPackage.Lifecycle.LifecycleData.Buildpacks = append(v3buildPackage.Lifecycle.LifecycleData.Buildpacks, "java_buildpack")
+
+	for _, buildpack := range buildpacks {
+		v3buildPackage.Lifecycle.LifecycleData.Buildpacks = append(v3buildPackage.Lifecycle.LifecycleData.Buildpacks, buildpack)
+	}
+
 	v3buildPackage.Lifecycle.LifecycleData.Stack = "cflinuxfs3"
 
 	appJSON, err := json.Marshal(v3buildPackage)
@@ -852,54 +854,49 @@ func (resource *ResourcesData) RouteMapping(appGUID string, routeGUID string) er
 	return err
 }
 
-//TODO optimize an fix zip issue
-// drop own implementation switch to appfiles/zipper
-// see push.go file from cf  - GatherFiles
-//zipUploadFile upload the application files
-func (resource *ResourcesData) zipUploadFile(appName string, fileName string) (string, error) {
-	zipFileName := fmt.Sprintf("%s%s.zip", os.TempDir(), appName)
-	if resource.TraceLogging {
-		fmt.Printf("try to create zip file: %s from passed file / folder %s \n", zipFileName, filepath.Base(fileName))
+type V3ServiceBinding struct {
+	Type          string `json:"type"`
+	Relationships struct {
+		App struct {
+			Data struct {
+				GUID string `json:"guid"`
+			} `json:"data"`
+		} `json:"app"`
+		ServiceInstance struct {
+			Data struct {
+				GUID string `json:"guid"`
+			} `json:"data"`
+		} `json:"service_instance"`
+	} `json:"relationships"`
+}
+
+//CreateServiceBinding
+func (resource *ResourcesData) CreateServiceBinding(appGUID string, serviceInstanceGUID []string) error {
+	path := fmt.Sprintf(`/v3/service_bindings`)
+
+	var v3ServiceBinding V3ServiceBinding
+	v3ServiceBinding.Type = "app"
+	v3ServiceBinding.Relationships.App.Data.GUID = appGUID
+
+	for _, serviceGUID := range serviceInstanceGUID {
+		v3ServiceBinding.Relationships.ServiceInstance.Data.GUID = serviceGUID
+		appJSON, err := json.Marshal(v3ServiceBinding)
+		if err != nil {
+			return err
+		}
+
+		result, _ := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
+			string(appJSON))
+		jsonResp := strings.Join(result, "")
+
+		if resource.TraceLogging {
+			fmt.Printf("service binding created path: %s for service\n", path)
+			prettyPrintJSON(jsonResp)
+		}
 	}
 
-	newZipFile, err := os.Create(zipFileName)
+	return nil
 
-	if err != nil {
-		return "", err
-	}
-
-	defer newZipFile.Close()
-
-	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
-
-	fileToZip, err := os.Open(fileName)
-	if err != nil {
-		return "", err
-	}
-	defer fileToZip.Close()
-
-	info, err := fileToZip.Stat()
-	if err != nil {
-		return "", err
-	}
-
-	header, err := zip.FileInfoHeader(info)
-	if err != nil {
-		return "", err
-	}
-
-	header.Name = fileName
-	header.Method = zip.Deflate
-
-	writer, err := zipWriter.CreateHeader(header)
-	if err != nil {
-		return "", err
-	}
-
-	_, err = io.Copy(writer, fileToZip)
-	fmt.Printf("return zip file: %s\n", zipFileName)
-	return zipFileName, err
 }
 
 // PrettyPrintJSON takes the given JSON string, makes it pretty, and prints it out.
