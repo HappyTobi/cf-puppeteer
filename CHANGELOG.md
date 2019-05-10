@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - sorted options
 - colorized logging ("code.cloudfoundry.org/cli/cf/terminal")
 
-## [1.0.0] - unreleased (WIP)
+## [1.0.0.rc.0] - 2019-05-09
 
 ### Added
 
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - update ParseArgs to struct instead of multi return values
+- Start code splitting
 
 ### Fixed
 

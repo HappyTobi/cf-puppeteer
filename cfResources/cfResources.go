@@ -21,24 +21,14 @@ import (
 
 //CfResourcesInterface interface for cfResource usage
 type CfResourcesInterface interface {
-	//Step1
 	PushApp(appName string, spaceGUID string, buildpacks []string, stack string, envVars []string) (*V3AppResponse, error)
-	//Step 3
 	CreatePackage(appGUID string) (*V3PackageResponse, error)
-	//Step 4 & 5
 	UploadApplication(appName string, applicationFiles string, targetURL string) (*V3PackageResponse, error)
-	//Step 6
 	CreateBuild(packageGUID string, buildpacks []string) (*V3BuildResponse, error)
-	//Step 7
 	CheckBuildState(buildGUID string) (*V3BuildResponse, error)
-	//Step 8
 	GetDropletGUID(buildGUID string) (*V3BuildResponse, error)
-	//Step 9
 	AssignApp(appGUID string, dropletGUID string) error
-	//Step 10
-	//Step 11
 	RouteMapping(appGUID string, routeGUID string) error
-	//Step 12
 	StartApp(appGUID string) error
 	//Stuff
 	AssignAppManifest(appLink string, manifestPath string) error
@@ -82,9 +72,10 @@ type V3Apps struct {
 			} `json:"data"`
 		} `json:"space"`
 	} `json:"relationships"`
-	EnvironmentVariables struct {
+	EnvironmentVariables map[string]string `json:"environment_variables,omitempty"`
+	/*EnvironmentVariables struct {
 		Vars map[string]string `json:"var,omitempty"`
-	} `json:"environment_variables,omitempty"`
+	} `json:"environment_variables,omitempty"`*/
 }
 
 //V3AppResponse application response struct
@@ -159,7 +150,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 		envVal := strings.TrimSpace(envPair[1])
 		envs[envKey] = envVal
 	}
-	v3App.EnvironmentVariables.Vars = envs
+	v3App.EnvironmentVariables = envs
 
 	//TODO move to function
 	appJSON, err := json.Marshal(v3App)
@@ -874,17 +865,20 @@ type V3ServiceBinding struct {
 func (resource *ResourcesData) CreateServiceBinding(appGUID string, serviceInstanceGUID []string) error {
 	path := fmt.Sprintf(`/v3/service_bindings`)
 
-	var v3ServiceBinding V3ServiceBinding
-	v3ServiceBinding.Type = "app"
-	v3ServiceBinding.Relationships.App.Data.GUID = appGUID
-
 	for _, serviceGUID := range serviceInstanceGUID {
+		var v3ServiceBinding V3ServiceBinding
+		v3ServiceBinding.Type = "app"
+		v3ServiceBinding.Relationships.App.Data.GUID = appGUID
 		v3ServiceBinding.Relationships.ServiceInstance.Data.GUID = serviceGUID
 		appJSON, err := json.Marshal(v3ServiceBinding)
 		if err != nil {
 			return err
 		}
 
+		if resource.TraceLogging {
+			fmt.Printf("post to : %s with appGUID: %s serviceGUID: %s\n", path, appGUID, serviceGUID)
+			prettyPrintJSON(string(appJSON))
+		}
 		result, _ := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
 			string(appJSON))
 		jsonResp := strings.Join(result, "")

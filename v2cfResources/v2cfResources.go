@@ -289,21 +289,11 @@ func (resource *ResourcesData) FindServiceInstances(serviceNames []string, space
 		}
 
 		for _, ent := range v2ServicesInstanceResponse.Resources {
-			serviceGUIDs = append(serviceGUIDs, ent.Entity.ServiceGUID)
+			serviceGUIDs = append(serviceGUIDs, ent.Metadata.GUID)
 		}
-
-		return serviceGUIDs, nil
-
 	}
 
-	/*var response V2SharedDomainResponse
-	err = json.Unmarshal([]byte(jsonResp), &response)
-	if err != nil {
-		return nil, err
-	}*/
-
 	return serviceGUIDs, nil
-
 }
 
 // PrettyPrintJSON takes the given JSON string, makes it pretty, and prints it out.
