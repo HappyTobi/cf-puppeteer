@@ -22,6 +22,14 @@ var _ = Describe("Parse Manifest", func() {
 		Expect(manifest.ApplicationManifests[0].Buildpacks[0]).Should(Equal("java_buildpack"))
 		Expect(manifest.ApplicationManifests[0].Buildpacks[1]).Should(Equal("go_buildpack"))
 	})
+
+	It("parses complete manifest with services", func() {
+		manifest, err := Parse("../fixtures/manifest.yml")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(manifest.ApplicationManifests[0].Name).Should(Equal("myApp"))
+		Expect(manifest.ApplicationManifests[0].Services[0]).Should(Equal("service1"))
+		Expect(manifest.ApplicationManifests[0].Services[1]).Should(Equal("service2"))
+	})
 })
 
 var _ = Describe("Parse multi Application Manifest", func() {

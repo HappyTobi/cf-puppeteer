@@ -2,25 +2,21 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/cli/cf/api/logs"
 	"code.cloudfoundry.org/cli/plugin"
-	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/happytobi/cf-puppeteer/cfResources"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
+	"github.com/happytobi/cf-puppeteer/v2cfResources"
 )
 
 func fatalIf(err error) {
@@ -108,25 +104,126 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					return err
 				}
 
-				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid)
+				applicationBuildpacks := parsedArguments.Manifest.ApplicationManifests[0].Buildpacks
+				applicationStack := parsedArguments.Manifest.ApplicationManifests[0].Stack
+
+				//move to own function
+				//TODO
+				var mergedEnvs []string
+				mergedEnvs = append(mergedEnvs, parsedArguments.Envs...)
+				for k, v := range parsedArguments.Manifest.ApplicationManifests[0].Env {
+					mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s=%s", k, v))
+				}
+
+				//TODO add options? -t --vars-file -var
+				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid, applicationBuildpacks, applicationStack, mergedEnvs)
 				if err != nil {
 					return err
 				}
-				//fmt.Printf("Cloud Foundry API response to GET call on %s:\n", appResponse)
+
+				appRepo.cf.AssignAppManifest(appResponse.Links.Self.Href, parsedArguments.ManifestPath)
 
 				createPackageResponse, err := appRepo.cf.CreatePackage(appResponse.GUID)
 				if err != nil {
 					return err
 				}
-				fmt.Printf("Cloud Foundry API response to GET call on %s:\n", createPackageResponse)
 
-				err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
+				domains, err := appRepo.cf.GetDomain(parsedArguments.Manifest.ApplicationManifests[0].Routes)
 				if err != nil {
 					return err
 				}
 
+				//TODO
+				venApp, err = appRepo.GetAppMetadata(venName)
+				if err != ErrAppNotFound && err != nil {
+					fmt.Printf("metadata error %s \n", err)
+					return err
+				}
+
+				var venRoutes []string
+
+				if venApp != nil {
+					venRoutes, err = appRepo.cf.GetRoutesApp(venApp.Metadata.GUID)
+					if err != nil {
+						return err
+					}
+				}
+
+				//TODO
+				for _, route := range *domains {
+					routeResponse, err := appRepo.cf2.CreateRoute(space.Guid, route.DomainGUID, route.Host)
+					if err != nil {
+						return err
+					}
+					err = appRepo.cf.RouteMapping(appResponse.GUID, routeResponse.Metadata.GUID)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("route generated and added to application - host: %s - domain: %s \n", route.Host, route.DomainGUID)
+				}
+
+				//add venroutes -> todo do it later?
+				for _, route := range venRoutes {
+					err = appRepo.cf.RouteMapping(appResponse.GUID, route)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("vendor routes mapped to application - route guid %s\n", route)
+				}
+
+				//map services
+				serviceGUIDs, err := appRepo.cf2.FindServiceInstances(parsedArguments.Manifest.ApplicationManifests[0].Services, space.Guid)
+				if err != nil {
+					return err
+				}
+
+				err = appRepo.cf.CreateServiceBinding(appResponse.GUID, serviceGUIDs)
+				if err != nil {
+					return err
+				}
+
+				createPackageResponse, err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
+				if err != nil {
+					return err
+				}
+
+				duration, _ := time.ParseDuration("5s")
+				fmt.Printf("Upload application [")
+				for createPackageResponse.State != "FAILED" &&
+					createPackageResponse.State != "READY" &&
+					createPackageResponse.State != "EXPIRED" {
+					time.Sleep(duration)
+					createPackageResponse, err = appRepo.cf.CheckPackageState(createPackageResponse.GUID)
+					fmt.Printf("=")
+					if err != nil {
+						return nil
+					}
+				}
+
+				fmt.Printf("] - done \n")
+
+				buildResponse, err := appRepo.cf.CreateBuild(createPackageResponse.GUID, applicationBuildpacks)
+				if err != nil {
+					return err
+				}
+
+				fmt.Printf("Waiting while creating the application [")
+				for buildResponse.State != "FAILED" &&
+					buildResponse.State != "STAGED" {
+					time.Sleep(duration)
+					buildResponse, err = appRepo.cf.CheckBuildState(buildResponse.GUID)
+					fmt.Printf("=")
+					if err != nil {
+						return nil
+					}
+				}
+				fmt.Printf("] - done \n")
+
+				dropletResponse, err := appRepo.cf.GetDropletGUID(buildResponse.GUID)
+
+				err = appRepo.cf.AssignApp(appResponse.GUID, dropletResponse.GUID)
+
 				return nil
-				//return appRepo.PushApplication(parsedArguments)
 			},
 		},
 		{
@@ -179,7 +276,7 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	var traceLogging bool
-	if os.Getenv("CF_PUPPETEER_TRACE") != "true" {
+	if os.Getenv("CF_PUPPETEER_TRACE") == "true" {
 		traceLogging = true
 	}
 	appRepo := NewApplicationRepo(cliConnection, traceLogging)
@@ -264,6 +361,7 @@ type ParserArguments struct {
 	ShowLogs                bool
 	DockerImage             string
 	DockerUserName          string
+	Manifest                manifest.Manifest
 }
 
 // ParseArgs parses the command line arguments
@@ -320,6 +418,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	if err != nil {
 		return pta, ErrManifest
 	}
+	pta.Manifest = parsedManifest
 
 	/*if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
 	    //TODO use dockerImage stuff and pass to push command
@@ -396,6 +495,7 @@ type ApplicationRepo struct {
 	conn         plugin.CliConnection
 	traceLogging bool
 	cf           cfResources.CfResourcesInterface
+	cf2          v2cfResources.V2CfResourcesInterface
 }
 
 func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *ApplicationRepo {
@@ -403,6 +503,7 @@ func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *Applicati
 		conn:         conn,
 		traceLogging: traceLogging,
 		cf:           cfResources.NewResources(conn, traceLogging),
+		cf2:          v2cfResources.NewResources(conn, traceLogging),
 	}
 }
 
@@ -451,80 +552,6 @@ func (repo *ApplicationRepo) SetHealthCheckV3(parsedArguments *ParserArguments, 
 	fmt.Println("")
 	err = repo.UpdateApplicationProcessWebInformation(appProcesEntity.GUID, applicationEntity)
 	return err
-}
-
-// PushApplication executes the Cloud Foundry push command for the specified application.
-// It returns any error that prevents a successful completion of the operation.
-func (repo *ApplicationRepo) PushApplication(parsedArguments *ParserArguments) error {
-	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start"}
-
-	if parsedArguments.AppPath != "" {
-		args = append(args, "-p", parsedArguments.AppPath)
-	}
-
-	if parsedArguments.StackName != "" {
-		args = append(args, "-s", parsedArguments.StackName)
-	}
-
-	/* always append timeout */
-	timeout := strconv.Itoa(parsedArguments.Timeout)
-	args = append(args, "-t", timeout)
-	for _, varPair := range parsedArguments.Vars {
-		args = append(args, "--var", varPair)
-	}
-
-	for _, varsFile := range parsedArguments.VarsFiles {
-		args = append(args, "--vars-file", varsFile)
-	}
-
-	_, err := repo.conn.CliCommand(args...)
-	if err != nil {
-		return err
-	}
-
-	envErr := repo.setEnvironmentVariables(parsedArguments.AppName, parsedArguments.Envs)
-	if envErr != nil {
-		return envErr
-	}
-
-	if parsedArguments.ShowLogs {
-		app, err := repo.conn.GetApp(parsedArguments.AppName)
-		if err != nil {
-			return err
-		}
-		dopplerEndpoint, err := repo.conn.DopplerEndpoint()
-		if err != nil {
-			return err
-		}
-		token, err := repo.conn.AccessToken()
-		if err != nil {
-			return err
-		}
-
-		cons := consumer.New(dopplerEndpoint, nil, nil)
-		defer cons.Close()
-
-		messages, errors := cons.TailingLogs(app.Guid, token)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		go func() {
-			for {
-				select {
-				case m := <-messages:
-					if m.GetSourceType() != "STG" { // skip STG messages as the cf tool already prints them
-						os.Stderr.WriteString(logs.NewNoaaLogMessage(m).ToLog(time.Local) + "\n")
-					}
-				case e := <-errors:
-					log.Println("error reading logs:", e)
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	return nil
 }
 
 // setEnvironmentVariables sets passed envs with set-env to set variables dynamically
@@ -587,6 +614,9 @@ func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppResourcesEntity
 
 	var metaDataResponseEntity MetaDataEntity
 	err = json.Unmarshal([]byte(jsonResp), &metaDataResponseEntity)
+	if repo.traceLogging {
+		fmt.Printf("response from getAppMetadata: %s was: %s \n", path, metaDataResponseEntity)
+	}
 
 	if err != nil {
 		return nil, err

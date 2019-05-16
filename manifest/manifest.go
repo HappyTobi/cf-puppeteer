@@ -11,20 +11,20 @@ import (
 Application yaml represents the complete yaml structure
 */
 type Application struct {
-	Name                    string                 `yaml:"name"`
-	Instances               int                    `yaml:"instances,omitempty"`
-	Memory                  string                 `yaml:"memory,omitempty"`
-	DiskQuota               string                 `yaml:"disk_quota,omitempty"`
-	Routes                  []map[string]string    `yaml:"routes,omitempty"`
-	NoRoute                 bool                   `yaml:"no-route,omitempty"`
-	Buildpacks              []string               `yaml:"buildpacks,omitempty"`
-	Command                 string                 `yaml:"command,omitempty"`
-	Env                     map[string]interface{} `yaml:"env,omitempty"`
-	Services                []string               `yaml:"services,omitempty"`
-	Stack                   string                 `yaml:"stack,omitempty"`
-	Timeout                 int                    `yaml:"timeout,omitempty"`
-	HealthCheckType         string                 `yaml:"health-check-type,omitempty"`
-	HealthCheckHTTPEndpoint string                 `yaml:"health-check-http-endpoint,omitempty"`
+	Name                    string              `yaml:"name"`
+	Instances               int                 `yaml:"instances,omitempty"`
+	Memory                  string              `yaml:"memory,omitempty"`
+	DiskQuota               string              `yaml:"disk_quota,omitempty"`
+	Routes                  []map[string]string `yaml:"routes,omitempty"`
+	NoRoute                 bool                `yaml:"no-route,omitempty"`
+	Buildpacks              []string            `yaml:"buildpacks,omitempty"`
+	Command                 string              `yaml:"command,omitempty"`
+	Env                     map[string]string   `yaml:"env,omitempty"`
+	Services                []string            `yaml:"services,omitempty"`
+	Stack                   string              `yaml:"stack,omitempty"`
+	Timeout                 int                 `yaml:"timeout,omitempty"`
+	HealthCheckType         string              `yaml:"health-check-type,omitempty"`
+	HealthCheckHTTPEndpoint string              `yaml:"health-check-http-endpoint,omitempty"`
 }
 
 // Manifest struct represents the application manifest.
