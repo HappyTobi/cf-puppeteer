@@ -3,6 +3,7 @@ package cf
 import (
 	"encoding/json"
 	"fmt"
+	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"os"
 
 	v3 "github.com/happytobi/cf-puppeteer/cf/v3"
@@ -19,7 +20,7 @@ type ApplicationPushData struct {
 }
 
 type PuppeteerPush interface {
-	pushApplication()
+	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string) error
 }
 
 var cliCalls cli.Calls
@@ -34,7 +35,7 @@ func NewApplicationPush(conn plugin.CliConnection, traceLogging bool) *Applicati
 	}
 }
 
-func (adp *ApplicationPushData) pushApplication() {
+func (adp *ApplicationPushData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string) error {
 	v3Push, err := useV3Push()
 	if err != nil {
 		//fatal exit
@@ -42,8 +43,20 @@ func (adp *ApplicationPushData) pushApplication() {
 	}
 
 	if v3Push {
+		var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
+		var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
+		err := push.PushApplication(appName, venAppName, appPath, serviceNames, spaceGuid, buildpacks, applicationStack, environmentVariables, manifestPath, routes, v2Resources)
+		if err != nil {
+			return err
+		}
+		return nil
+		//push.PushApplication(appName string, venAppName string, appPath string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string )
+
+		//var v3push v3.V3Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
+		//v3push.PushApplication()
 
 	}
+	return nil
 }
 
 func useV3Push() (bool, error) {
@@ -51,7 +64,11 @@ func useV3Push() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	v3SerSemVer, _ := semver.Make(v3ServerVersion)
+	v3SerSemVer, err := semver.Make(v3ServerVersion)
+	if err != nil {
+		return false, nil
+	}
+
 	expectedRange, err := semver.ParseRange(fmt.Sprintf(">=%s", v3.MinControllerVersion))
 	//check if we can use the v3 push
 	if expectedRange(v3SerSemVer) {

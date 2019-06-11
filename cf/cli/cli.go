@@ -4,35 +4,62 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/cli/plugin"
+	print "github.com/happytobi/cf-puppeteer/cf/utils"
 	"github.com/happytobi/cf-puppeteer/ui"
 )
 
+//Calls cli curl calls
 type Calls interface {
 	GetJSON(path string) (string, error)
+	PostJSON(path string, jsonBody string) (string, error)
 }
 
-type CliConnection struct {
-	conn         plugin.CliConnection
+//Connection cli connection object
+type Connection struct {
+	cf           plugin.CliConnection
 	traceLogging bool
 }
 
 //NewCli ff
-func NewCli(conn plugin.CliConnection, traceLogging bool) *CliConnection {
-	return &CliConnection{
-		conn:         conn,
+func NewCli(conn plugin.CliConnection, traceLogging bool) *Connection {
+	return &Connection{
+		cf:           conn,
 		traceLogging: traceLogging,
 	}
 }
 
-//GetJSONCall make an get call to an url
-func (conn *CliConnection) GetJSON(path string) (string, error) {
-	result, err := conn.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
+//GetJSON make an get call to an url
+func (conn *Connection) GetJSON(path string) (string, error) {
+	result, err := conn.cf.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET", "-H", "Content-type: application/json")
+	if err != nil {
+		ui.Failed("error while calling %s - error: %s", path, err)
+		return "", err
+	}
+
+	jsonResp := strings.Join(result, "")
+
+	if conn.traceLogging {
+		ui.Say("response from get call to path: %s was: %s %s", path, jsonResp, print.PrettyJSON(jsonResp))
+	}
+
+	return jsonResp, nil
+}
+
+//PostJSON post to path with json body
+func (conn *Connection) PostJSON(path string, jsonBody string) (string, error) {
+	args := []string{"curl", path, "-X", "POST", "-H", "Content-type: application/json"}
+	if jsonBody != "" {
+		bodyArgs := []string{"-d", jsonBody}
+		args = append(args, bodyArgs...)
+	}
+
+	result, err := conn.cf.CliCommandWithoutTerminalOutput(args...)
 	if err != nil {
 		return "", err
 	}
 	jsonResp := strings.Join(result, "")
 	if conn.traceLogging {
-		ui.Say("response from get call to path: %s was: %s\n", path /*prettyPrintJSON(jsonResp) */, jsonResp)
+		ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
 	}
 	return jsonResp, nil
 }

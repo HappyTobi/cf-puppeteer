@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/happytobi/cf-puppeteer/ui"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -159,7 +160,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 	}
 
 	if resource.TraceLogging {
-		fmt.Printf("send POST to route: %s with body:\n", path)
+		ui.Say("send POST to route: %s with body:", path)
 		prettyPrintJSON(string(appJSON))
 	}
 	result, err := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
@@ -172,7 +173,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 	jsonResp := strings.Join(result, "")
 
 	if resource.TraceLogging {
-		fmt.Printf("response from http call to path: %s was:\n", path)
+		ui.Say("response from http call to path: %s was", path)
 		prettyPrintJSON(jsonResp)
 	}
 

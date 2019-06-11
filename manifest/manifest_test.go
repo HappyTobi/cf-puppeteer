@@ -30,6 +30,17 @@ var _ = Describe("Parse Manifest", func() {
 		Expect(manifest.ApplicationManifests[0].Services[0]).Should(Equal("service1"))
 		Expect(manifest.ApplicationManifests[0].Services[1]).Should(Equal("service2"))
 	})
+	It("parses complete manifest with buildpack url", func() {
+		manifest, err := Parse("../fixtures/phpManifest.yml")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(manifest.ApplicationManifests[0].Name).Should(Equal("appname"))
+		Expect(manifest.ApplicationManifests[0].Services[0]).Should(Equal("ma-db"))
+		Expect(manifest.ApplicationManifests[0].Services[1]).Should(Equal("app-db"))
+		Expect(manifest.ApplicationManifests[0].Services[2]).Should(Equal("credentials"))
+		Expect(manifest.ApplicationManifests[0].Stack).Should(Equal("cflinuxfs3"))
+		Expect(manifest.ApplicationManifests[0].Buildpacks[0]).Should(Equal("https://github.com/cloudfoundry/php-buildpack.git"))
+		Expect(manifest.ApplicationManifests[0].Buildpacks[1]).Should(Equal("https://github.com/cloudfoundry/php-buildpack.git"))
+	})
 })
 
 var _ = Describe("Parse multi Application Manifest", func() {

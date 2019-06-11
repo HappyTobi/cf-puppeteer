@@ -1,22 +1,21 @@
 package main
 
 import (
-	"bytes"
+	"code.cloudfoundry.org/cli/plugin"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/happytobi/cf-puppeteer/cf"
+	print "github.com/happytobi/cf-puppeteer/cf/utils"
+	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
+	"github.com/happytobi/cf-puppeteer/manifest"
+	"github.com/happytobi/cf-puppeteer/rewind"
+	"github.com/happytobi/cf-puppeteer/ui"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
-	"time"
-
-	"code.cloudfoundry.org/cli/plugin"
-	"github.com/happytobi/cf-puppeteer/cfResources"
-	"github.com/happytobi/cf-puppeteer/manifest"
-	"github.com/happytobi/cf-puppeteer/rewind"
-	"github.com/happytobi/cf-puppeteer/v2cfResources"
 )
 
 func fatalIf(err error) {
@@ -39,14 +38,14 @@ func venerableAppName(appName string) string {
 func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments) []rewind.Action {
 	venName := venerableAppName(parsedArguments.AppName)
 	var err error
-	var curApp, venApp, temp *AppResourcesEntity
+	var curApp, venApp, temp *v2.AppResourcesEntity
 	var haveVenToCleanup bool
 
 	return []rewind.Action{
 		// get info about current app
 		{
 			Forward: func() error {
-				curApp, err = appRepo.GetAppMetadata(parsedArguments.AppName)
+				curApp, err = appRepo.v2Resources.GetAppMetadata(parsedArguments.AppName)
 				if err != ErrAppNotFound {
 					return err
 				}
@@ -57,11 +56,14 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 		// get info about ven app
 		{
 			Forward: func() error {
-				venApp, err = appRepo.GetAppMetadata(venName)
-				if err != ErrAppNotFound {
-					return err
+				venApp, err = appRepo.v2Resources.GetAppMetadata(venName)
+				if err != nil {
+					if err == v2.ErrAppNotFound {
+						venApp = nil
+					} else {
+						return err
+					}
 				}
-				venApp = nil
 				return nil
 			},
 		},
@@ -106,6 +108,12 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 
 				applicationBuildpacks := parsedArguments.Manifest.ApplicationManifests[0].Buildpacks
 				applicationStack := parsedArguments.Manifest.ApplicationManifests[0].Stack
+				appName := parsedArguments.AppName
+				appPath := parsedArguments.AppPath
+				serviceNames := parsedArguments.Manifest.ApplicationManifests[0].Services
+				spaceGUID := space.Guid
+				manifestPath := parsedArguments.ManifestPath
+				routes := parsedArguments.Manifest.ApplicationManifests[0].Routes
 
 				//move to own function
 				//TODO
@@ -115,120 +123,17 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 					mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s=%s", k, v))
 				}
 
-				//TODO add options? -t --vars-file -var
-				appResponse, err := appRepo.cf.PushApp(parsedArguments.AppName, space.Guid, applicationBuildpacks, applicationStack, mergedEnvs)
+				var puppeteerPush cf.PuppeteerPush = cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
+				err = puppeteerPush.PushApplication(appName, venName, appPath, serviceNames, spaceGUID, applicationBuildpacks, applicationStack, mergedEnvs, manifestPath, routes)
 				if err != nil {
 					return err
 				}
-
-				appRepo.cf.AssignAppManifest(appResponse.Links.Self.Href, parsedArguments.ManifestPath)
-
-				createPackageResponse, err := appRepo.cf.CreatePackage(appResponse.GUID)
-				if err != nil {
-					return err
-				}
-
-				domains, err := appRepo.cf.GetDomain(parsedArguments.Manifest.ApplicationManifests[0].Routes)
-				if err != nil {
-					return err
-				}
-
-				//TODO
-				venApp, err = appRepo.GetAppMetadata(venName)
-				if err != ErrAppNotFound && err != nil {
-					fmt.Printf("metadata error %s \n", err)
-					return err
-				}
-
-				var venRoutes []string
-
-				if venApp != nil {
-					venRoutes, err = appRepo.cf.GetRoutesApp(venApp.Metadata.GUID)
-					if err != nil {
-						return err
-					}
-				}
-
-				//TODO
-				for _, route := range *domains {
-					routeResponse, err := appRepo.cf2.CreateRoute(space.Guid, route.DomainGUID, route.Host)
-					if err != nil {
-						return err
-					}
-					err = appRepo.cf.RouteMapping(appResponse.GUID, routeResponse.Metadata.GUID)
-					if err != nil {
-						return err
-					}
-					fmt.Printf("route generated and added to application - host: %s - domain: %s \n", route.Host, route.DomainGUID)
-				}
-
-				//add venroutes -> todo do it later?
-				for _, route := range venRoutes {
-					err = appRepo.cf.RouteMapping(appResponse.GUID, route)
-					if err != nil {
-						return err
-					}
-					fmt.Printf("vendor routes mapped to application - route guid %s\n", route)
-				}
-
-				//map services
-				serviceGUIDs, err := appRepo.cf2.FindServiceInstances(parsedArguments.Manifest.ApplicationManifests[0].Services, space.Guid)
-				if err != nil {
-					return err
-				}
-
-				err = appRepo.cf.CreateServiceBinding(appResponse.GUID, serviceGUIDs)
-				if err != nil {
-					return err
-				}
-
-				createPackageResponse, err = appRepo.cf.UploadApplication(parsedArguments.AppName, parsedArguments.AppPath, createPackageResponse.Links.Upload.Href)
-				if err != nil {
-					return err
-				}
-
-				duration, _ := time.ParseDuration("5s")
-				fmt.Printf("Upload application [")
-				for createPackageResponse.State != "FAILED" &&
-					createPackageResponse.State != "READY" &&
-					createPackageResponse.State != "EXPIRED" {
-					time.Sleep(duration)
-					createPackageResponse, err = appRepo.cf.CheckPackageState(createPackageResponse.GUID)
-					fmt.Printf("=")
-					if err != nil {
-						return nil
-					}
-				}
-
-				fmt.Printf("] - done \n")
-
-				buildResponse, err := appRepo.cf.CreateBuild(createPackageResponse.GUID, applicationBuildpacks)
-				if err != nil {
-					return err
-				}
-
-				fmt.Printf("Waiting while creating the application [")
-				for buildResponse.State != "FAILED" &&
-					buildResponse.State != "STAGED" {
-					time.Sleep(duration)
-					buildResponse, err = appRepo.cf.CheckBuildState(buildResponse.GUID)
-					fmt.Printf("=")
-					if err != nil {
-						return nil
-					}
-				}
-				fmt.Printf("] - done \n")
-
-				dropletResponse, err := appRepo.cf.GetDropletGUID(buildResponse.GUID)
-
-				err = appRepo.cf.AssignApp(appResponse.GUID, dropletResponse.GUID)
-
 				return nil
 			},
 		},
 		{
 			Forward: func() error {
-				temp, err = appRepo.GetAppMetadata(parsedArguments.AppName)
+				temp, err = appRepo.v2Resources.GetAppMetadata(parsedArguments.AppName)
 				if err != nil {
 					return err
 				}
@@ -494,16 +399,18 @@ var (
 type ApplicationRepo struct {
 	conn         plugin.CliConnection
 	traceLogging bool
-	cf           cfResources.CfResourcesInterface
-	cf2          v2cfResources.V2CfResourcesInterface
+	v2Resources  v2.Resources
+	//cf           cfResources.CfResourcesInterface
+	//cf2          v2cfResources.V2CfResourcesInterface
 }
 
 func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *ApplicationRepo {
 	return &ApplicationRepo{
 		conn:         conn,
 		traceLogging: traceLogging,
-		cf:           cfResources.NewResources(conn, traceLogging),
-		cf2:          v2cfResources.NewResources(conn, traceLogging),
+		v2Resources:  v2.NewV2Resources(conn, traceLogging),
+		/*cf:           cfResources.NewResources(conn, traceLogging),
+		cf2:          v2cfResources.NewResources(conn, traceLogging),*/
 	}
 }
 
@@ -598,6 +505,7 @@ type AppResourcesEntity struct {
 
 // GetAppMetadata fetches information on the application specified by appName
 func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppResourcesEntity, error) {
+	ui.Say("GetAppMetadata called")
 	space, err := repo.conn.GetCurrentSpace()
 	if err != nil {
 		return nil, err
@@ -610,15 +518,21 @@ func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppResourcesEntity
 		return nil, err
 	}
 
+	/*	if len(result) <= 0 {
+		return nil, ErrAppNotFound
+	}*/
+
+	ui.Say("send json response: %s requested path: %s", result, path)
 	jsonResp := strings.Join(result, "")
 
 	var metaDataResponseEntity MetaDataEntity
 	err = json.Unmarshal([]byte(jsonResp), &metaDataResponseEntity)
 	if repo.traceLogging {
-		fmt.Printf("response from getAppMetadata: %s was: %s \n", path, metaDataResponseEntity)
+		ui.Say("response from getAppMetadata: %s was: %s", path, metaDataResponseEntity)
 	}
 
 	if err != nil {
+		ui.Failed("response from getAppMetadata: %s was: %s", path, metaDataResponseEntity)
 		return nil, err
 	}
 
@@ -675,8 +589,8 @@ func (repo *ApplicationRepo) GetApplicationProcessWebInformation(appGUID string)
 	jsonResp := strings.Join(result, "")
 
 	if repo.traceLogging {
-		fmt.Printf("Cloud Foundry API response to GET call on %s:\n", path)
-		PrettyPrintJSON(jsonResp)
+		ui.Say("Cloud Foundry API response to GET call on %s", path)
+		print.PrettyJSON(jsonResp)
 	}
 
 	var applicationProcessResponse ApplicationProcessesEntityV3
@@ -711,8 +625,8 @@ func (repo *ApplicationRepo) UpdateApplicationProcessWebInformation(appGUID stri
 	jsonResp := strings.Join(result, "")
 
 	if repo.traceLogging {
-		fmt.Printf("Cloud Foundry API response to PATCH call on %s:\n", path)
-		PrettyPrintJSON(jsonResp)
+		ui.Say("Cloud Foundry API response to PATCH call on %s", path)
+		print.PrettyJSON(jsonResp)
 	}
 
 	var applicationResponse ApplicationEntityV3
@@ -725,20 +639,6 @@ func (repo *ApplicationRepo) UpdateApplicationProcessWebInformation(appGUID stri
 	if applicationResponse.HealthCheck.HealthCheckType != applicationEntity.HealthCheck.HealthCheckType {
 		return ErrInvokationTimeout
 	}
-
-	return nil
-}
-
-// PrettyPrintJSON takes the given JSON string, makes it pretty, and prints it out.
-func PrettyPrintJSON(jsonUgly string) error {
-	jsonPretty := &bytes.Buffer{}
-	err := json.Indent(jsonPretty, []byte(jsonUgly), "", "    ")
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(jsonPretty.String())
 
 	return nil
 }
