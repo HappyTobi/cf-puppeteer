@@ -1,15 +1,19 @@
 package ui
 
 import (
-	"os"
-
+	"code.cloudfoundry.org/cli/cf/i18n"
 	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/trace"
+	"os"
 )
 
 var ui terminal.UI
 
 func init() {
+	i18n.T = func(translationID string, args ...interface{}) string {
+		return translationID
+	}
+
 	ui = terminal.NewUI(
 		os.Stdin,
 		os.Stdout,
