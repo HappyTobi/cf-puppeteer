@@ -1,0 +1,18 @@
+applications:
+- name: appname
+  buildpacks:
+  - https://github.com/cloudfoundry/php-buildpack.git
+  - https://github.com/cloudfoundry/php-buildpack.git
+  path: ../src
+  disk_quota: 2G
+  env:
+    PHP_ENV: production
+  instances: 1
+  memory: 256M
+  routes:
+  - route: url.example.com
+  services:
+  - ma-db
+  - app-db
+  - credentials
+  stack: cflinuxfs3
