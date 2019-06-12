@@ -30,7 +30,7 @@ func (resource *ResourcesData) RouteMapping(appGUID string, routeGUID string) er
 		return err
 	}
 
-	_, err = resource.cli.PostJSON(path, string(appJSON))
+	_, err = resource.Cli.PostJSON(path, string(appJSON))
 
 	return err
 }

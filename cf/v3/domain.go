@@ -117,7 +117,7 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 func (resource *ResourcesData) getDomain(path string) (*DomainResponse, error) {
 	var response DomainResponse
 
-	jsonResult, err := resource.cli.GetJSON(path)
+	jsonResult, err := resource.Cli.GetJSON(path)
 	if err != nil {
 		return nil, err
 	}

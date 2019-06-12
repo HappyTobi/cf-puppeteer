@@ -18,18 +18,18 @@ type Push interface {
 //ResourcesData internal struct with connection an tracing options etc
 type ResourcesData struct {
 	zipper     appfiles.Zipper
-	cli        cli.Calls
+	Cli        cli.Calls
 	httpClient cli.HttpCalls
-	connection plugin.CliConnection
+	Connection plugin.CliConnection
 }
 
 //NewV3Push constructor
 func NewV3Push(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 	return &ResourcesData{
 		zipper:     &appfiles.ApplicationZipper{},
-		cli:        cli.NewCli(conn, traceLogging),
+		Cli:        cli.NewCli(conn, traceLogging),
 		httpClient: cli.NewHttpClient(conn, traceLogging, 30, false),
-		connection: conn,
+		Connection: conn,
 	}
 }
 

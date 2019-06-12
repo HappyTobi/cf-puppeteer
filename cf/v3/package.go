@@ -51,7 +51,7 @@ func (resource *ResourcesData) CreatePackage(appGUID string) (*PackageResponse, 
 		return nil, err
 	}
 
-	jsonResult, err := resource.cli.PostJSON(path, string(appJSON))
+	jsonResult, err := resource.Cli.PostJSON(path, string(appJSON))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (resource *ResourcesData) CreatePackage(appGUID string) (*PackageResponse, 
 func (resource *ResourcesData) CheckPackageState(packageGUID string) (*PackageResponse, error) {
 	path := fmt.Sprintf(`/v3/packages/%s`, packageGUID)
 
-	jsonResult, err := resource.cli.GetJSON(path)
+	jsonResult, err := resource.Cli.GetJSON(path)
 
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (resource *ResourcesData) UploadApplication(appName string, applicationFile
 		bytes.NewReader(body.Bytes()),
 	)
 
-	token, _ := resource.connection.AccessToken()
+	token, _ := resource.Connection.AccessToken()
 	request.Header = http.Header{}
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", "client.userAgent")

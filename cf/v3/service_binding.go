@@ -42,7 +42,7 @@ func (resource *ResourcesData) CreateServiceBinding(appGUID string, serviceInsta
 		/*result, _ := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
 		string(appJSON))*/
 
-		_, _ = resource.cli.PostJSON(path, string(appJSON))
+		_, _ = resource.Cli.PostJSON(path, string(appJSON))
 
 		/*
 			if resource.TraceLogging {

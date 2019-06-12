@@ -46,7 +46,7 @@ func (resource *ResourcesData) CreateBuild(packageGUID string, buildpacks []stri
 		return nil, err
 	}
 
-	jsonResult, err := resource.cli.PostJSON(path, string(appJSON))
+	jsonResult, err := resource.Cli.PostJSON(path, string(appJSON))
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (resource *ResourcesData) CreateBuild(packageGUID string, buildpacks []stri
 //CheckBuildState check the pushed application is staged or not
 func (resource *ResourcesData) CheckBuildState(buildGUID string) (*BuildResponse, error) {
 	path := fmt.Sprintf(`/v3/builds/%s`, buildGUID)
-	jsonResult, err := resource.cli.GetJSON(path)
+	jsonResult, err := resource.Cli.GetJSON(path)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (resource *ResourcesData) CheckBuildState(buildGUID string) (*BuildResponse
 //GetDropletGUID get dropletGUID for uploaded and staged build
 func (resource *ResourcesData) GetDropletGUID(buildGUID string) (*BuildResponse, error) {
 	path := fmt.Sprintf(`/v3/builds/%s`, buildGUID)
-	jsonResult, err := resource.cli.GetJSON(path)
+	jsonResult, err := resource.Cli.GetJSON(path)
 
 	var response BuildResponse
 	err = json.Unmarshal([]byte(jsonResult), &response)
