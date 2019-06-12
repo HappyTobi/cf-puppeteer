@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
+	"github.com/happytobi/cf-puppeteer/ui"
 	"os"
 
 	v3 "github.com/happytobi/cf-puppeteer/cf/v3"
@@ -50,11 +51,8 @@ func (adp *ApplicationPushData) PushApplication(appName string, venAppName strin
 			return err
 		}
 		return nil
-		//push.PushApplication(appName string, venAppName string, appPath string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string )
-
-		//var v3push v3.V3Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
-		//v3push.PushApplication()
-
+	} else {
+		ui.Failed("v2 only is not supported right now")
 	}
 	return nil
 }

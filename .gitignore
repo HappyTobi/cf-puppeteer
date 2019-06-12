@@ -26,4 +26,5 @@ _testmain.go
 # Ignore Mac os files
 .DS_Store
 
+.vscode
 .idea
