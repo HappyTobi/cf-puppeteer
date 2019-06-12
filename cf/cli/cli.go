@@ -12,6 +12,7 @@ import (
 type Calls interface {
 	GetJSON(path string) (string, error)
 	PostJSON(path string, jsonBody string) (string, error)
+	PatchJSON(path string, jsonBody string) (string, error)
 }
 
 //Connection cli connection object
@@ -52,6 +53,21 @@ func (conn *Connection) PostJSON(path string, jsonBody string) (string, error) {
 		bodyArgs := []string{"-d", jsonBody}
 		args = append(args, bodyArgs...)
 	}
+
+	result, err := conn.cf.CliCommandWithoutTerminalOutput(args...)
+	if err != nil {
+		return "", err
+	}
+	jsonResp := strings.Join(result, "")
+	if conn.traceLogging {
+		ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
+	}
+	return jsonResp, nil
+}
+
+//PatchJSON post to path with json body
+func (conn *Connection) PatchJSON(path string, jsonBody string) (string, error) {
+	args := []string{"curl", path, "-X", "PATCH", "-H", "Content-type: application/json", "-d", jsonBody}
 
 	result, err := conn.cf.CliCommandWithoutTerminalOutput(args...)
 	if err != nil {

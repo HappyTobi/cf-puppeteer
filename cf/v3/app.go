@@ -152,7 +152,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 		return nil, err
 	}
 
-	jsonResult, err := resource.cli.PostJSON(path, string(appJSON))
+	jsonResult, err := resource.Cli.PostJSON(path, string(appJSON))
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 func (resource *ResourcesData) GetApp(appGUID string) (*AppResponse, error) {
 	path := fmt.Sprintf(`/v3/apps/%s`, appGUID)
 
-	jsonResult, err := resource.cli.GetJSON(path)
+	jsonResult, err := resource.Cli.GetJSON(path)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func (resource *ResourcesData) GetApp(appGUID string) (*AppResponse, error) {
 //StartApp start app on cf
 func (resource *ResourcesData) StartApp(appGUID string) error {
 	path := fmt.Sprintf(`/v3/apps/%s/actions/start`, appGUID)
-	_, err := resource.cli.PostJSON(path, "")
+	_, err := resource.Cli.PostJSON(path, "")
 	return err
 }
 
@@ -202,7 +202,7 @@ func (resource *ResourcesData) AssignApp(appGUID string, dropletGUID string) err
 		return err
 	}
 
-	_, err = resource.cli.PostJSON(path, string(appJSON))
+	_, err = resource.Cli.PatchJSON(path, string(appJSON))
 
 	return err
 }
@@ -211,7 +211,7 @@ func (resource *ResourcesData) AssignApp(appGUID string, dropletGUID string) err
 func (resource *ResourcesData) GetRoutesApp(appGUID string) ([]string, error) {
 	path := fmt.Sprintf(`/v3/apps/%s/route_mappings`, appGUID)
 
-	jsonResult, err := resource.cli.GetJSON(path)
+	jsonResult, err := resource.Cli.GetJSON(path)
 
 	var response RouteMappingResponse
 
