@@ -12,7 +12,6 @@ import (
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
 	"github.com/happytobi/cf-puppeteer/ui"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -20,7 +19,7 @@ import (
 
 func fatalIf(err error) {
 	if err != nil {
-		fmt.Fprintln(os.Stdout, "error:", err)
+		ui.Failed("error: ", err)
 		os.Exit(1)
 	}
 }
@@ -216,20 +215,20 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 				UsageDetails: plugin.Usage{
 					Usage: "$ cf zero-downtime-push [<App-Name>] -f <Manifest.yml> [options]",
 					Options: map[string]string{
-						"f":                           "path to application manifest",
-						"p":                           "path to application files",
-						"s":                           "name of the stack to use",
-						"t":                           "push timeout (in secounds)",
-						"-show-app-log":               "tail and show application log during application start",
-						"env":                         "add environment key value pairs dynamic; can specity multiple times",
-						"var":                         "variable key value pair for variable substitution; can specify multiple times",
-						"vars-file":                   "Path to a variable substitution file for manifest; can specify multiple times",
+						"f":             "path to application manifest",
+						"p":             "path to application files",
+						"s":             "name of the stack to use",
+						"t":             "push timeout (in secounds)",
+						"-show-app-log": "tail and show application log during application start",
+						"env":           "add environment key value pairs dynamic; can specify multiple times",
+						//"var":                         "variable key value pair for variable substitution; can specify multiple times",
+						//"vars-file":                   "Path to a variable substitution file for manifest; can specify multiple times",
 						"-vendor-option":              "option to delete or stop vendor application - default is delete",
 						"-health-check-type":          "type of health check to perform",
 						"-health-check-http-endpoint": "endpoint for the 'http' health check type",
 						"-invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",
-						"-process":                    "application process to update",
-						"v":                           "print additional details on the deployment process",
+						//"-process":                    "application process to update",
+						//"v":                           "print additional details on the deployment process",
 					},
 				},
 			},
@@ -285,14 +284,14 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in secounds (defaults to 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
-	flags.StringVar(&pta.Process, "process", "", "application process to update")
+	//flags.StringVar(&pta.Process, "process", "", "application process to update")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete or stop vendor application - default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specity multiple times")
-	flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
-	flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
-	flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
-	flags.StringVar(&pta.DockerUserName, "docker-username", "", "pass docker username if image came from private repository")
+	//flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
+	//flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
+	//flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
+	//flags.StringVar(&pta.DockerUserName, "docker-username", "", "pass docker username if image came from private repository")
 	//dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
 
 	//first check if argument was passed
@@ -400,8 +399,6 @@ type ApplicationRepo struct {
 	conn         plugin.CliConnection
 	traceLogging bool
 	v2Resources  v2.Resources
-	//cf           cfResources.CfResourcesInterface
-	//cf2          v2cfResources.V2CfResourcesInterface
 }
 
 func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *ApplicationRepo {
@@ -409,8 +406,6 @@ func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *Applicati
 		conn:         conn,
 		traceLogging: traceLogging,
 		v2Resources:  v2.NewV2Resources(conn, traceLogging),
-		/*cf:           cfResources.NewResources(conn, traceLogging),
-		cf2:          v2cfResources.NewResources(conn, traceLogging),*/
 	}
 }
 
@@ -461,23 +456,6 @@ func (repo *ApplicationRepo) SetHealthCheckV3(parsedArguments *ParserArguments, 
 	return err
 }
 
-// setEnvironmentVariables sets passed envs with set-env to set variables dynamically
-func (repo *ApplicationRepo) setEnvironmentVariables(appName string, envs []string) error {
-	varArgs := []string{"set-env", appName}
-	//set all variables passed by --var
-	for _, envPair := range envs {
-		tmpArgs := make([]string, len(varArgs))
-		copy(tmpArgs, varArgs)
-		newArgs := strings.SplitN(envPair, "=", 2)
-		tmpArgs = append(tmpArgs, newArgs...)
-		_, err := repo.conn.CliCommand(tmpArgs...)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (repo *ApplicationRepo) DeleteApplication(appName string) error {
 	_, err := repo.conn.CliCommand("delete", appName, "-f")
 	return err
@@ -486,61 +464,6 @@ func (repo *ApplicationRepo) DeleteApplication(appName string) error {
 func (repo *ApplicationRepo) ListApplications() error {
 	_, err := repo.conn.CliCommand("apps")
 	return err
-}
-
-type MetaDataEntity struct {
-	AppResourcesEntity []AppResourcesEntity `json:"resources"`
-}
-type Metadata struct {
-	GUID string `json:"guid"`
-}
-type Entity struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
-}
-type AppResourcesEntity struct {
-	Metadata Metadata `json:"metadata"`
-	Entity   Entity   `json:"entity"`
-}
-
-// GetAppMetadata fetches information on the application specified by appName
-func (repo *ApplicationRepo) GetAppMetadata(appName string) (*AppResourcesEntity, error) {
-	ui.Say("GetAppMetadata called")
-	space, err := repo.conn.GetCurrentSpace()
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf(`v2/apps?q=name:%s&q=space_guid:%s`, url.QueryEscape(appName), space.Guid)
-	result, err := repo.conn.CliCommandWithoutTerminalOutput("curl", path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	/*	if len(result) <= 0 {
-		return nil, ErrAppNotFound
-	}*/
-
-	ui.Say("send json response: %s requested path: %s", result, path)
-	jsonResp := strings.Join(result, "")
-
-	var metaDataResponseEntity MetaDataEntity
-	err = json.Unmarshal([]byte(jsonResp), &metaDataResponseEntity)
-	if repo.traceLogging {
-		ui.Say("response from getAppMetadata: %s was: %s", path, metaDataResponseEntity)
-	}
-
-	if err != nil {
-		ui.Failed("response from getAppMetadata: %s was: %s", path, metaDataResponseEntity)
-		return nil, err
-	}
-
-	if len(metaDataResponseEntity.AppResourcesEntity) == 0 {
-		return nil, ErrAppNotFound
-	}
-
-	return &metaDataResponseEntity.AppResourcesEntity[0], nil
 }
 
 /**
