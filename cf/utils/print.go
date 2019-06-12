@@ -16,7 +16,5 @@ func PrettyJSON(jsonUgly string) error {
 		return err
 	}
 
-	//ui.Say(jsonPretty.String())
-
 	return nil
 }
