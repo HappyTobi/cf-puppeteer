@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestCfActions(t *testing.T) {
+func TestCfAppActions(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Puppeteer CF Resources")
 }
