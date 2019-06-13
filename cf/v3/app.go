@@ -126,6 +126,11 @@ type RouteMappingResponse struct {
 	} `json:"resources"`
 }
 
+type ApplicationProcessesResponse struct {
+	GUID    string `json:"guid"`
+	Command string `json:"command,omitempty"`
+}
+
 //PushApp push app with v3 api to cloudfoundry
 func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpacks []string, stack string, envVars []string) (*AppResponse, error) {
 	path := fmt.Sprintf(`/v3/apps`)
@@ -229,4 +234,27 @@ func (resource *ResourcesData) GetRoutesApp(appGUID string) ([]string, error) {
 	}*/
 
 	return routeGUIDs, err
+}
+
+// GetApplicationProcessWebInformation
+func (resource *ResourcesData) GetApplicationProcessWebInformation(appGUID string) (*ApplicationProcessesResponse, error) {
+	path := fmt.Sprintf(`/v3/apps/%s/processes/web`, appGUID)
+
+	jsonResult, err := resource.Cli.GetJSON(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var applicationProcessResponse ApplicationProcessesResponse
+	err = json.Unmarshal([]byte(jsonResult), &applicationProcessResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(applicationProcessResponse.GUID) == 0 {
+		return nil, ErrAppNotFound
+	}
+
+	return &applicationProcessResponse, nil
 }

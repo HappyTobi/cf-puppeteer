@@ -12,7 +12,7 @@ import (
 
 //Push interface with all v3 actions
 type Push interface {
-	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, v2Resources v2.Resources) error
+	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, v2Resources v2.Resources, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error
 }
 
 //ResourcesData internal struct with connection an tracing options etc
@@ -33,10 +33,12 @@ func NewV3Push(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 	}
 }
 
-var ErrAppNotFound = errors.New("application not found")
+var (
+	ErrAppNotFound = errors.New("application not found")
+)
 
 //PushApplication call all methods to push a complete application
-func (resource *ResourcesData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, v2Resources v2.Resources) error {
+func (resource *ResourcesData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, v2Resources v2.Resources, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error {
 	appResponse, err := resource.PushApp(appName, spaceGuid, buildpacks, applicationStack, environmentVariables)
 	if err != nil {
 		return err
@@ -66,8 +68,7 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 		if err != nil {
 			return err
 		}
-		//add trace
-		//ui.Say("route generated and added to application - host: %s - domain: %s", route.Host, route.DomainGUID)
+
 		ui.Say("add routes to application")
 	}
 
@@ -88,16 +89,15 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 		}
 	}
 
-	//add venroutes -> todo do it later?
+	ui.Say("map vendor routes to new application")
 	for _, route := range venRoutes {
 		err = resource.RouteMapping(appResponse.GUID, route)
+		ui.LoadingIndication()
 		if err != nil {
 			return err
 		}
-		//TODO trace
-		//ui.Say("vendor routes mapped to application - route guid %s", route)
-		ui.Say("map vendor routes to new application")
 	}
+	ui.Say("")
 	ui.Ok()
 
 	//map services
@@ -137,6 +137,14 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 		return err
 	}
 
+	//set timeouts
+	ui.Say("set timeout parameters")
+	err = resource.SetHealthCheck(healthCheckType, healthCheckHttpEndpoint, invocationTimeout, process, appResponse.GUID)
+	if err != nil {
+		return err
+	}
+	ui.Ok()
+
 	ui.Say("stage application")
 	for buildResponse.State != "FAILED" &&
 		buildResponse.State != "STAGED" {
@@ -153,4 +161,35 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 	dropletResponse, err := resource.GetDropletGUID(buildResponse.GUID)
 	err = resource.AssignApp(appResponse.GUID, dropletResponse.GUID)
 	return nil
+}
+
+// SetHealthCheckV3 sets the health check for the specified application using the given health check configuration
+func (resource *ResourcesData) SetHealthCheck(healthCheckType string, healthCheckHTTPEndpoint string, invocationTimeout int, process string, GUID string) error {
+	// Without a health check type, the CF command is not valid. Therefore, leave if the type is not specified
+	if healthCheckType == "" {
+		return nil
+	}
+
+	// load application by guid
+	appProcessEntity, err := resource.GetApplicationProcessWebInformation(GUID)
+	if err != nil {
+		return err
+	}
+
+	applicationEntity := ApplicationEntity{}
+	applicationEntity.Command = appProcessEntity.Command
+	applicationEntity.HealthCheck.HealthCheckType = healthCheckType
+	applicationEntity.HealthCheck.Data.Timeout = 120 //use parsed argument
+
+	if healthCheckType == "http" && healthCheckHTTPEndpoint != "" {
+		applicationEntity.HealthCheck.Data.Endpoint = healthCheckHTTPEndpoint
+		if invocationTimeout >= 0 {
+			applicationEntity.HealthCheck.Data.InvocationTimeout = invocationTimeout
+		}
+	} else if process != "" && (healthCheckType == "process" || healthCheckType == "port") {
+		applicationEntity.ProcessType = process
+	}
+
+	err = resource.UpdateApplicationProcessWebInformation(appProcessEntity.GUID, applicationEntity)
+	return err
 }

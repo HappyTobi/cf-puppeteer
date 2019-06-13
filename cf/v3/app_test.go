@@ -443,4 +443,55 @@ var _ = Describe("cf-app test", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
+
+	Describe("Application process web informations with curl v3 api", func() {
+
+		It("check application process web informations", func() {
+			response := []string{
+				`{
+                    "guid": "999",
+                    "type": "web",
+                    "command": "helloWorld=comman",
+                    "instances": 1,
+                    "memory_in_mb": 128
+                    }`,
+			}
+
+			appGUID := "999"
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			applicationProcessesEntityV3, err := resourcesData.GetApplicationProcessWebInformation(appGUID)
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3/apps/999/processes/web", "-X", "GET", "-H",
+				"Content-type: application/json"}))
+
+			Expect(applicationProcessesEntityV3).ToNot(BeNil())
+			Expect(applicationProcessesEntityV3.GUID).To(Equal("999"))
+			Expect(applicationProcessesEntityV3.Command).To(Equal("helloWorld=comman"))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("check application process web informations - app not available", func() {
+			response := []string{
+				`{
+                    "errors": []
+                    }`,
+			}
+
+			appGUID := "999"
+
+			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
+			_, err := resourcesData.GetApplicationProcessWebInformation(appGUID)
+
+			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			args := cliConn.CliCommandWithoutTerminalOutputArgsForCall(0)
+			Expect(args).To(Equal([]string{"curl", "/v3/apps/999/processes/web", "-X", "GET", "-H",
+				"Content-type: application/json"}))
+
+			Expect(err).To(MatchError("application not found"))
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })

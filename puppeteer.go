@@ -2,12 +2,10 @@ package main
 
 import (
 	"code.cloudfoundry.org/cli/plugin"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"github.com/happytobi/cf-puppeteer/cf"
-	print "github.com/happytobi/cf-puppeteer/cf/utils"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/rewind"
@@ -37,7 +35,7 @@ func venerableAppName(appName string) string {
 func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments) []rewind.Action {
 	venName := venerableAppName(parsedArguments.AppName)
 	var err error
-	var curApp, venApp, temp *v2.AppResourcesEntity
+	var curApp, venApp *v2.AppResourcesEntity
 	var haveVenToCleanup bool
 
 	return []rewind.Action{
@@ -113,6 +111,10 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				spaceGUID := space.Guid
 				manifestPath := parsedArguments.ManifestPath
 				routes := parsedArguments.Manifest.ApplicationManifests[0].Routes
+				healthCheckType := parsedArguments.HealthCheckType
+				healthCheckHttpEndpoint := parsedArguments.HealthCheckHTTPEndpoint
+				process := parsedArguments.Process
+				invocationTimeout := parsedArguments.InvocationTimeout
 
 				//move to own function
 				//TODO
@@ -123,20 +125,11 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				}
 
 				var puppeteerPush cf.PuppeteerPush = cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
-				err = puppeteerPush.PushApplication(appName, venName, appPath, serviceNames, spaceGUID, applicationBuildpacks, applicationStack, mergedEnvs, manifestPath, routes)
+				err = puppeteerPush.PushApplication(appName, venName, appPath, serviceNames, spaceGUID, applicationBuildpacks, applicationStack, mergedEnvs, manifestPath, routes, healthCheckType, healthCheckHttpEndpoint, process, invocationTimeout)
 				if err != nil {
 					return err
 				}
 				return nil
-			},
-		},
-		{
-			Forward: func() error {
-				temp, err = appRepo.v2Resources.GetAppMetadata(parsedArguments.AppName)
-				if err != nil {
-					return err
-				}
-				return appRepo.SetHealthCheckV3(parsedArguments, temp.Metadata.GUID)
 			},
 		},
 		// start
@@ -344,20 +337,16 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 
 	// get health check settings from manifest if nothing else was specified in the command line
 	if pta.HealthCheckType == "" {
-		pta.HealthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
+		if parsedManifest.ApplicationManifests[0].HealthCheckType == "" {
+			pta.HealthCheckType = "port"
+		} else {
+			pta.HealthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
+		}
+
 	}
 	if pta.HealthCheckHTTPEndpoint == "" {
 		pta.HealthCheckHTTPEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHTTPEndpoint
 	}
-
-	if pta.HealthCheckType != "" || pta.HealthCheckHTTPEndpoint != "" || pta.Process != "" {
-		err = repo.CheckAPIV3()
-		if err != nil {
-			return pta, ErrNoV3ApiAvailable
-		}
-	}
-
-	//TODO check invocationtimeout argument
 
 	//validate envs format
 	if len(envs) > 0 {
@@ -387,12 +376,6 @@ var (
 	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
 	//ErrAppNotFound application not found error
 	ErrAppNotFound = errors.New("application not found")
-	//ErrNoV3ApiAvailable error message when cf api v3 is not available
-	ErrNoV3ApiAvailable = errors.New("cf api v3 is not available")
-	//ErrInvokationTimeout
-	ErrInvokationTimeout = errors.New("could not set invocation timeout to application")
-	//ErrWrongInvocationTimeoutArgs
-	ErrWrongInvocationTimeoutArgs = errors.New("wrong combination of timeout arguments passed")
 )
 
 type ApplicationRepo struct {
@@ -424,38 +407,6 @@ func (repo *ApplicationRepo) StartApplication(appName string) error {
 	return err
 }
 
-// SetHealthCheckV3 sets the health check for the specified application using the given health check configuration
-func (repo *ApplicationRepo) SetHealthCheckV3(parsedArguments *ParserArguments, GUID string) error {
-	// Without a health check type, the CF command is not valid. Therefore, leave if the type is not specified
-	if parsedArguments.HealthCheckType == "" {
-		return nil
-	}
-
-	// load application by guid
-	appProcesEntity, err := repo.GetApplicationProcessWebInformation(GUID)
-
-	applicationEntity := ApplicationEntityV3{}
-	applicationEntity.Command = appProcesEntity.Command
-	applicationEntity.HealthCheck.HealthCheckType = parsedArguments.HealthCheckType
-
-	if parsedArguments.HealthCheckType == "http" && parsedArguments.HealthCheckHTTPEndpoint != "" {
-		applicationEntity.HealthCheck.Data.Endpoint = parsedArguments.HealthCheckHTTPEndpoint
-		if parsedArguments.InvocationTimeout >= 0 {
-			applicationEntity.HealthCheck.Data.InvocationTimeout = parsedArguments.InvocationTimeout
-		}
-	} else if parsedArguments.Process != "" && (parsedArguments.HealthCheckType == "process" || parsedArguments.HealthCheckType == "port") {
-		applicationEntity.ProcessType = parsedArguments.Process
-	} else {
-		return ErrWrongInvocationTimeoutArgs
-	}
-
-	fmt.Println("")
-	fmt.Printf("Updating health check setting for application %v", parsedArguments.AppName)
-	fmt.Println("")
-	err = repo.UpdateApplicationProcessWebInformation(appProcesEntity.GUID, applicationEntity)
-	return err
-}
-
 func (repo *ApplicationRepo) DeleteApplication(appName string) error {
 	_, err := repo.conn.CliCommand("delete", appName, "-f")
 	return err
@@ -464,104 +415,4 @@ func (repo *ApplicationRepo) DeleteApplication(appName string) error {
 func (repo *ApplicationRepo) ListApplications() error {
 	_, err := repo.conn.CliCommand("apps")
 	return err
-}
-
-/**
-V3 Entities
-*/
-
-type ApplicationProcessesEntityV3 struct {
-	GUID    string `json:"guid"`
-	Command string `json:"command,omitempty"`
-}
-
-type ApplicationEntityV3 struct {
-	Command     string              `json:"command,omitempty"`
-	HealthCheck HealthCheckEntityV3 `json:"health_check"`
-	ProcessType string              `json:"type,omitempty"`
-}
-type DataEnvityV3 struct {
-	Endpoint          string `json:"endpoint,omitempty"`
-	InvocationTimeout int    `json:"invocation_timeout,omitempty"`
-}
-type HealthCheckEntityV3 struct {
-	Data            DataEnvityV3 `json:"data,omitempty"`
-	HealthCheckType string       `json:"type"`
-}
-
-// CheckAPIV3 call v3 url to check availablility
-func (repo *ApplicationRepo) CheckAPIV3() error {
-	response, err := repo.conn.CliCommandWithoutTerminalOutput("curl", "/v3", "-X", "GET")
-	result := strings.Join(response, "")
-
-	if err != nil || strings.Contains(result, "error") {
-		return ErrNoV3ApiAvailable
-	}
-	return nil
-}
-
-// GetApplicationProcessWebInformation call v3 process api
-func (repo *ApplicationRepo) GetApplicationProcessWebInformation(appGUID string) (*ApplicationProcessesEntityV3, error) {
-	path := fmt.Sprintf(`/v3/apps/%s/processes/web`, appGUID)
-	result, err := repo.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "GET")
-
-	if err != nil {
-		return nil, err
-	}
-
-	jsonResp := strings.Join(result, "")
-
-	if repo.traceLogging {
-		ui.Say("Cloud Foundry API response to GET call on %s", path)
-		print.PrettyJSON(jsonResp)
-	}
-
-	var applicationProcessResponse ApplicationProcessesEntityV3
-	err = json.Unmarshal([]byte(jsonResp), &applicationProcessResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(applicationProcessResponse.GUID) == 0 {
-		return nil, ErrAppNotFound
-	}
-
-	return &applicationProcessResponse, nil
-}
-
-// UpdateApplicationProcessWebInformation calls v3 application to set options
-// see api documentation http://v3-apidocs.cloudfoundry.org/version/3.67.0/index.html#update-an-app
-func (repo *ApplicationRepo) UpdateApplicationProcessWebInformation(appGUID string, applicationEntity ApplicationEntityV3) error {
-	path := fmt.Sprintf(`/v3/processes/%s`, appGUID)
-	appJSON, err := json.Marshal(applicationEntity)
-	if err != nil {
-		return err
-	}
-
-	result, err := repo.conn.CliCommandWithoutTerminalOutput("curl", path, "-X", "PATCH", "-H", "Content-type: application/json",
-		"-d", string(appJSON))
-
-	if err != nil {
-		return err
-	}
-
-	jsonResp := strings.Join(result, "")
-
-	if repo.traceLogging {
-		ui.Say("Cloud Foundry API response to PATCH call on %s", path)
-		print.PrettyJSON(jsonResp)
-	}
-
-	var applicationResponse ApplicationEntityV3
-	err = json.Unmarshal([]byte(jsonResp), &applicationResponse)
-
-	if err != nil {
-		return err
-	}
-
-	if applicationResponse.HealthCheck.HealthCheckType != applicationEntity.HealthCheck.HealthCheckType {
-		return ErrInvokationTimeout
-	}
-
-	return nil
 }

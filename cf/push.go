@@ -21,7 +21,7 @@ type ApplicationPushData struct {
 }
 
 type PuppeteerPush interface {
-	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string) error
+	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error
 }
 
 var cliCalls cli.Calls
@@ -36,7 +36,7 @@ func NewApplicationPush(conn plugin.CliConnection, traceLogging bool) *Applicati
 	}
 }
 
-func (adp *ApplicationPushData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string) error {
+func (adp *ApplicationPushData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error {
 	v3Push, err := useV3Push()
 	if err != nil {
 		//fatal exit
@@ -46,7 +46,7 @@ func (adp *ApplicationPushData) PushApplication(appName string, venAppName strin
 	if v3Push {
 		var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
 		var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
-		err := push.PushApplication(appName, venAppName, appPath, serviceNames, spaceGuid, buildpacks, applicationStack, environmentVariables, manifestPath, routes, v2Resources)
+		err := push.PushApplication(appName, venAppName, appPath, serviceNames, spaceGuid, buildpacks, applicationStack, environmentVariables, manifestPath, routes, v2Resources, healthCheckType, healthCheckHttpEndpoint, process, invocationTimeout)
 		if err != nil {
 			return err
 		}
