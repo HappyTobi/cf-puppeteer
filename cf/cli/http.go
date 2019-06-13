@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"code.cloudfoundry.org/cli/plugin"
 	"crypto/tls"
+	print "github.com/happytobi/cf-puppeteer/cf/utils"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"time"
-
-	print "github.com/happytobi/cf-puppeteer/cf/utils"
 )
 
 //Calls interface
@@ -87,7 +86,11 @@ func (conn *HttpConnection) PostJSON(path string, body []byte) (string, error) {
 
 	jsonResp := string(result)
 	if conn.traceLogging {
-		ui.Say("response from get call to path: %s was: %s\n", path, print.PrettyJSON(jsonResp))
+		if len(jsonResp) == 0 {
+			ui.Say("response from get call to path: %s was: %s", path, res.StatusCode)
+		} else {
+			ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
+		}
 	}
 
 	return jsonResp, nil
