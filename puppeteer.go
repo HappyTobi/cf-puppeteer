@@ -144,6 +144,11 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 				if !haveVenToCleanup {
 					return nil
 				}
+				if parsedArguments.ShowCrashLogs {
+					//print logs before application delete
+					ui.Say("show crash logs")
+					_ = appRepo.ShowCrashLogs(parsedArguments.AppName)
+				}
 
 				// If the app cannot start we'll have a lingering application
 				// We delete this application so that the rename can succeed
@@ -223,6 +228,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-health-check-type":          "type of health check to perform",
 						"-health-check-http-endpoint": "endpoint for the 'http' health check type",
 						"-invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",
+						"-show-crash-log":             "Show recent logs when applications crashes while the deployment",
 						//"-process":                    "application process to update",
 						//"v":                           "print additional details on the deployment process",
 					},
@@ -259,6 +265,7 @@ type ParserArguments struct {
 	VarsFiles               []string
 	Envs                    []string
 	ShowLogs                bool
+	ShowCrashLogs           bool
 	DockerImage             string
 	DockerUserName          string
 	Manifest                manifest.Manifest
@@ -283,7 +290,9 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	//flags.StringVar(&pta.Process, "process", "", "application process to update")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete or stop vendor application - default is delete")
-	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specity multiple times")
+	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
+	flags.BoolVar(&pta.ShowCrashLogs, "show-crash-log", false, "Show recent logs when applications crashes while the deployment")
+
 	//flags.Var(&vars, "var", "Variable key value pair for variable substitution, (e.g., name=app1); can specify multiple times")
 	//flags.Var(&varsFiles, "vars-file", "Path to a variable substitution file for manifest; can specify multiple times")
 	//flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
@@ -316,7 +325,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	//parse manifest
 	parsedManifest, err := manifest.Parse(pta.ManifestPath)
 	if err != nil {
-		return pta, ErrManifest
+		return pta, err //ErrManifest
 	}
 	pta.Manifest = parsedManifest
 
@@ -410,6 +419,11 @@ func (repo *ApplicationRepo) StartApplication(appName string) error {
 
 func (repo *ApplicationRepo) DeleteApplication(appName string) error {
 	_, err := repo.conn.CliCommand("delete", appName, "-f")
+	return err
+}
+
+func (repo *ApplicationRepo) ShowCrashLogs(appName string) error {
+	_, err := repo.conn.CliCommand("logs", "--recent", appName)
 	return err
 }
 

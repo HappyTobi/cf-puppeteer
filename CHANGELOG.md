@@ -9,10 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - add argument to cleanup unused enviroment variables
 - log deployment time
-- [-] code cleanup
 - fix all linter problems
 - sorted options
-- colorized logging ("code.cloudfoundry.org/cli/cf/terminal")
+
+## [1.0.0.rc.1] - 2019-06-13
+
+### Added
+
+- new argument to show crash log before old application will be deleted
+
+### Changed
+
+- cleanup code (refactor the complete plugin)
+- colorized logging - use default cf terminal logging with color
+- remove some parameters (like var, vars-file etc.)  
+
+### Fixed
+
+- publishing applications
+- fix some liner errors
+
+### Features
+
 
 ## [1.0.0.rc.0] - 2019-05-09
 
