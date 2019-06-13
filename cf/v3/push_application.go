@@ -28,7 +28,7 @@ func NewV3Push(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 	return &ResourcesData{
 		zipper:     &appfiles.ApplicationZipper{},
 		Cli:        cli.NewCli(conn, traceLogging),
-		httpClient: cli.NewHttpClient(conn, traceLogging, 30, false),
+		httpClient: cli.NewHttpClient(conn, traceLogging, 30, true),
 		Connection: conn,
 	}
 }

@@ -72,9 +72,13 @@ func (conn *HttpConnection) PostJSON(path string, body []byte) (string, error) {
 	request.Header.Set("Content-Type", "application/x-yaml")
 	request.Header.Set("Authorization", token)
 
+	if conn.traceLogging {
+		ui.Say("try to call path: %s", path)
+	}
+
 	res, err := conn.httpClient.Do(request)
 	if err != nil {
-		ui.Failed("Error while calling the apply manifest url %s - error: %s \n", path, err)
+		ui.Failed("Error while calling the apply manifest url %s - error: %s", path, err)
 		return "", err
 	}
 
