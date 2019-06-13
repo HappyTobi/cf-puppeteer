@@ -278,7 +278,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.StackName, "s", "", "name of the stack to use")
 	flags.StringVar(&pta.HealthCheckType, "health-check-type", "", "type of health check to perform")
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
-	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in secounds (defaults to 60 seconds)")
+	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (defaults to 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
 	//flags.StringVar(&pta.Process, "process", "", "application process to update")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
@@ -377,8 +377,6 @@ var (
 	ErrManifest = errors.New("could not parse manifest")
 	//ErrWrongEnvFormat error when env files was not in right format
 	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
-	//ErrAppNotFound application not found error
-	ErrAppNotFound = errors.New("application not found")
 )
 
 type ApplicationRepo struct {

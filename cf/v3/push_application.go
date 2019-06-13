@@ -75,7 +75,7 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 	ui.Ok()
 
 	venApp, err := v2Resources.GetAppMetadata(venAppName)
-	if err != ErrAppNotFound && err != nil {
+	if err != v2.ErrAppNotFound && err != nil {
 		ui.Failed("metadata error %s", err)
 		return err
 	}

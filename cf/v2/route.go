@@ -49,11 +49,6 @@ func (resource *ResourcesData) CreateRoute(spaceGUID string, domainGUID string, 
 		return nil, err
 	}
 
-	/*if resource.TraceLogging {
-		fmt.Printf("send POST to route: %s with body:\n", path)
-		prettyPrintJSON(string(appJSON))
-	}*/
-
 	jsonResult, err := resource.cli.PostJSON(path, string(appJSON))
 
 	if err != nil {
