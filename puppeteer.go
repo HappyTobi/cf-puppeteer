@@ -188,9 +188,9 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
 	}).Execute())
 
-	fmt.Println()
-	fmt.Println("A new version of your application has successfully been pushed!")
-	fmt.Println()
+	ui.Say("")
+	ui.Say("A new version of your application has successfully been pushed!")
+	ui.Say("")
 
 	_ = appRepo.ListApplications()
 }
