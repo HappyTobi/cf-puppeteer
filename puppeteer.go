@@ -17,7 +17,7 @@ import (
 
 func fatalIf(err error) {
 	if err != nil {
-		ui.Failed("error: ", err)
+		ui.Failed("error: %s", err)
 		os.Exit(1)
 	}
 }
@@ -43,10 +43,13 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *ParserArguments
 		{
 			Forward: func() error {
 				curApp, err = appRepo.v2Resources.GetAppMetadata(parsedArguments.AppName)
-				if err != ErrAppNotFound {
-					return err
+				if err != nil {
+					if err == v2.ErrAppNotFound {
+						curApp = nil
+					} else {
+						return err
+					}
 				}
-				curApp = nil
 				return nil
 			},
 		},

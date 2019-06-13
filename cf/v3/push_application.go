@@ -132,10 +132,12 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 	ui.Say("")
 	ui.Ok()
 
+	ui.Say("create build")
 	buildResponse, err := resource.CreateBuild(createPackageResponse.GUID, buildpacks)
 	if err != nil {
 		return err
 	}
+	ui.Ok()
 
 	//set timeouts
 	ui.Say("set timeout parameters")
