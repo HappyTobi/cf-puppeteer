@@ -287,7 +287,7 @@ func ParseArgs(repo *ApplicationRepo, args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (defaults to 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
-	//flags.StringVar(&pta.Process, "process", "", "application process to update")
+	flags.StringVar(&pta.Process, "process", "", "application process to update")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete or stop vendor application - default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")

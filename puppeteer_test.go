@@ -34,9 +34,6 @@ var _ = Describe("Flag Parsing", func() {
 				"-p", "app-path",
 				"-s", "stack-name",
 				"-t", "120",
-				"-var", "foo=bar",
-				"-var", "baz=bob",
-				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob=true",
 				"--vendor-option", "stop",
@@ -50,11 +47,10 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/manifest.yml"))
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
-		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
 		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(2211))
 		Expect(parsedArguments.Process).To(Equal("process-name"))
@@ -70,9 +66,6 @@ var _ = Describe("Flag Parsing", func() {
 				"-f", "./fixtures/manifest.yml",
 				"-p", "app-path",
 				"-s", "stack-name",
-				"-var", "foo=bar",
-				"-var", "baz=bob",
-				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
 				"--vendor-option", "stop",
@@ -84,11 +77,10 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/manifest.yml"))
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
-		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(2))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
 		Expect(parsedArguments.Process).To(Equal(""))
@@ -104,12 +96,10 @@ var _ = Describe("Flag Parsing", func() {
 				"-f", "./fixtures/multiManifest.yml",
 				"-p", "app-path",
 				"-s", "stack-name",
-				"-var", "foo=bar",
-				"-var", "baz=bob",
-				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
 				"--vendor-option", "stop",
+				"--show-crash-log",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -118,11 +108,10 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/multiManifest.yml"))
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
-		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.ShowCrashLogs).To(Equal(true))
 		Expect(parsedArguments.Timeout).To(Equal(60))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
 		Expect(parsedArguments.Process).To(Equal(""))
@@ -139,9 +128,6 @@ var _ = Describe("Flag Parsing", func() {
 				"-p", "app-path",
 				"-s", "stack-name",
 				"-t", "120",
-				"-var", "foo=bar",
-				"-var", "baz=bob",
-				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
 				"--invocation-timeout", "2211",
@@ -157,11 +143,10 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.ManifestPath).To(Equal("./fixtures/manifest.yml"))
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
-		Expect(parsedArguments.Vars).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VarsFiles).To(Equal([]string{"vars.yml"}))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
 		Expect(parsedArguments.VendorAppOption).Should(Equal("delete"))
 		Expect(parsedArguments.ShowLogs).To(Equal(true))
+		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(2211))
 		Expect(parsedArguments.Process).To(Equal("process-name"))
@@ -177,9 +162,6 @@ var _ = Describe("Flag Parsing", func() {
 				"-p", "app-path",
 				"-s", "stack-name",
 				"-t", "120",
-				"-var", "foo=bar",
-				"-var", "baz bob",
-				"-vars-file", "vars.yml",
 				"-env", "foo=bar",
 				"-env", "baz bob",
 				"--invocation-timeout", "2211",
