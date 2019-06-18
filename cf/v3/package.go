@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 //V3Package represents post model of V3Package body
@@ -78,10 +79,19 @@ func (resource *ResourcesData) CheckPackageState(packageGUID string) (*PackageRe
 	return &response, nil
 }
 
+func (resource *ResourcesData) GenerateTempFile(appName string) (zipFile string) {
+	tempDir := strings.TrimSuffix(os.TempDir(), "/")
+	pathFormat := "%s/%s.zip"
+	if strings.HasPrefix(appName, "/") {
+		pathFormat = "%s%s.zip"
+	}
+	return fmt.Sprintf(pathFormat, tempDir, appName)
+}
+
 //UploadApplication upload a zip file to the created package
 func (resource *ResourcesData) UploadApplication(appName string, applicationFiles string, targetURL string) (*PackageResponse, error) {
 	if !resource.zipper.IsZipFile(applicationFiles) {
-		zipFileName := fmt.Sprintf("%s%s.zip", os.TempDir(), appName)
+		zipFileName := resource.GenerateTempFile(appName)
 		newZipFile, err := os.Create(zipFileName)
 
 		if err != nil {
@@ -118,6 +128,5 @@ func (resource *ResourcesData) UploadApplication(appName string, applicationFile
 	if err != nil {
 		return nil, err
 	}
-
 	return &response, err
 }
