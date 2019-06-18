@@ -3,8 +3,8 @@ package cf
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/happytobi/cf-puppeteer/arguments"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
-	"github.com/happytobi/cf-puppeteer/ui"
 	"os"
 
 	v3 "github.com/happytobi/cf-puppeteer/cf/v3"
@@ -21,7 +21,7 @@ type ApplicationPushData struct {
 }
 
 type PuppeteerPush interface {
-	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error
+	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments) error
 }
 
 var cliCalls cli.Calls
@@ -36,23 +36,22 @@ func NewApplicationPush(conn plugin.CliConnection, traceLogging bool) *Applicati
 	}
 }
 
-func (adp *ApplicationPushData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error {
+func (adp *ApplicationPushData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments) error {
 	v3Push, err := useV3Push()
 	if err != nil {
 		//fatal exit
 		os.Exit(1)
 	}
 
-	if v3Push {
+	if v3Push && parsedArguments.LegacyPush != true {
 		var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
 		var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
-		err := push.PushApplication(appName, venAppName, appPath, serviceNames, spaceGuid, buildpacks, applicationStack, environmentVariables, manifestPath, routes, v2Resources, healthCheckType, healthCheckHttpEndpoint, process, invocationTimeout)
-		if err != nil {
-			return err
-		}
-		return nil
+		err := push.PushApplication(venAppName, spaceGUID, parsedArguments, v2Resources)
+		return err
 	} else {
-		ui.Failed("v2 only is not supported right now")
+		var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)
+		err := legacyPush.PushApplication(venAppName, spaceGUID, parsedArguments)
+		return err
 	}
 	return nil
 }
