@@ -5,51 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Upcoming features [1.0.0]
+## Upcoming features [1.x.x]
 
-- add argument to cleanup unused enviroment variables
+- add argument to cleanup unused environment variables
 - log deployment time
-- fix all linter problems
 - sorted options
+- deploy without routes
+- deploy routes only 
 
-## [1.0.0.rc.1] - 2019-06-13
+## [1.0.0.rc.0 - rc.2 - Final] - 2019-06-13
 
 ### Added
 
 - new argument to show crash log before old application will be deleted
+- push application with v3 api
 
 ### Changed
 
 - cleanup code (refactor the complete plugin)
 - colorized logging - use default cf terminal logging with color
 - remove some parameters (like var, vars-file etc.)  
+- update ParseArgs to struct instead of multi return values
+- code splitting / complete refactoring 
 
 ### Fixed
 
 - publishing applications
-- fix some liner errors
-
-### Features
-
-
-## [1.0.0.rc.0] - 2019-05-09
-
-### Added
-
-- push application with v3 api
-
-### Changed
-
-- update ParseArgs to struct instead of multi return values
-- Start code splitting
-
-### Fixed
-
-- manifest parser to understand new format (https://docs.cloudfoundry.org/devguide/deploy-apps/manifest-attributes.html#buildpack)
+- fix some linter errors
+- implement new manifest parser to understand new manifest format (https://docs.cloudfoundry.org/devguide/deploy-apps/manifest-attributes.html#buildpack)
 
 ### Features
 
 - add argument to stop old service only instead of deletion
+- choose between v2 and v3 push (v2 = legacy option)
+
 
 ## [0.0.14] - 2019-03-25
 
