@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/plugin"
 	"errors"
+	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/ui"
@@ -12,7 +13,7 @@ import (
 
 //Push interface with all v3 actions
 type Push interface {
-	PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, v2Resources v2.Resources, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error
+	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error
 }
 
 //ResourcesData internal struct with connection an tracing options etc
@@ -38,8 +39,22 @@ var (
 )
 
 //PushApplication call all methods to push a complete application
-func (resource *ResourcesData) PushApplication(appName string, venAppName string, appPath string, serviceNames []string, spaceGuid string, buildpacks []string, applicationStack string, environmentVariables []string, manifestPath string, routes []map[string]string, v2Resources v2.Resources, healthCheckType string, healthCheckHttpEndpoint string, process string, invocationTimeout int) error {
-	appResponse, err := resource.PushApp(appName, spaceGuid, buildpacks, applicationStack, environmentVariables)
+func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error {
+
+	buildpacks := parsedArguments.Manifest.ApplicationManifests[0].Buildpacks
+	applicationStack := parsedArguments.Manifest.ApplicationManifests[0].Stack
+	appName := parsedArguments.AppName
+	appPath := parsedArguments.AppPath
+	serviceNames := parsedArguments.Manifest.ApplicationManifests[0].Services
+	//spaceGUID := space.Guid
+	manifestPath := parsedArguments.ManifestPath
+	routes := parsedArguments.Manifest.ApplicationManifests[0].Routes
+	healthCheckType := parsedArguments.HealthCheckType
+	healthCheckHttpEndpoint := parsedArguments.HealthCheckHTTPEndpoint
+	process := parsedArguments.Process
+	invocationTimeout := parsedArguments.InvocationTimeout
+
+	appResponse, err := resource.PushApp(appName, spaceGUID, buildpacks, applicationStack, parsedArguments.MergedEnvs)
 	if err != nil {
 		return err
 	}
@@ -60,7 +75,7 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 	}
 
 	for _, route := range *domains {
-		routeResponse, err := v2Resources.CreateRoute(spaceGuid, route.DomainGUID, route.Host)
+		routeResponse, err := v2Resources.CreateRoute(spaceGUID, route.DomainGUID, route.Host)
 		if err != nil {
 			return err
 		}
@@ -101,7 +116,7 @@ func (resource *ResourcesData) PushApplication(appName string, venAppName string
 	ui.Ok()
 
 	//map services
-	serviceGUIDs, err := v2Resources.FindServiceInstances(serviceNames, spaceGuid)
+	serviceGUIDs, err := v2Resources.FindServiceInstances(serviceNames, spaceGUID)
 	if err != nil {
 		return err
 	}
