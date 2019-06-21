@@ -1,6 +1,8 @@
 package manifest_test
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -9,7 +11,7 @@ import (
 	. "github.com/happytobi/cf-puppeteer/manifest"
 )
 
-func TestManifestPartser(t *testing.T) {
+func TestManifestParser(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Manifest Testsuite")
 }
@@ -57,5 +59,19 @@ var _ = Describe("Parse invalid Application Manifest", func() {
 		manifest, err := Parse("../fixtures/invalidManifest.yml")
 		Expect(err).ShouldNot(BeNil())
 		Expect(manifest.ApplicationManifests).Should(BeNil())
+	})
+})
+
+var _ = Describe("Write new manifest", func() {
+	It("write manifest file to specified path", func() {
+		manifest, err := Parse("../fixtures/manifest.yml")
+		Expect(err).ShouldNot(HaveOccurred())
+		tempFile := fmt.Sprintf("%s%s", os.TempDir(), "testManifest.yml")
+		err = WriteYmlFile(tempFile, manifest)
+		Expect(err).ShouldNot(HaveOccurred())
+		parsedTempManifest, err := Parse(tempFile)
+		fmt.Printf("%s", tempFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(manifest.ApplicationManifests[0].Name).Should(Equal(parsedTempManifest.ApplicationManifests[0].Name))
 	})
 })

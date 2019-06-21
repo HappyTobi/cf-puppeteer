@@ -2,9 +2,8 @@ package manifest
 
 import (
 	"fmt"
-	"io/ioutil"
-
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 )
 
 /*
@@ -57,4 +56,14 @@ func loadYmlFile(manifestFilePath string) (manifest Manifest, err error) {
 	}
 
 	return document, nil
+}
+
+//WriteYmlFile write yml file to specified path
+func WriteYmlFile(manifestFilePath string, manifest Manifest) (err error) {
+	mManifest, err := yaml.Marshal(&manifest)
+	if err != nil {
+		return err
+	}
+	bManifest := []byte(string(mManifest))
+	return ioutil.WriteFile(manifestFilePath, bManifest, 0644)
 }
