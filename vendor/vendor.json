@@ -1427,6 +1427,12 @@
 			"revisionTime": "2018-12-21T19:31:53Z"
 		},
 		{
+			"checksumSHA1": "atFTH73uH2FkPpqock5dEp5PL08=",
+			"path": "github.com/jinzhu/copier",
+			"revision": "7e38e58719c33e0d44d585c4ab477a30f8cb82dd",
+			"revisionTime": "2018-03-08T03:41:24Z"
+		},
+		{
 			"checksumSHA1": "r6ZMyP/HsdeToXIxvgP3ntL6Bds=",
 			"path": "github.com/konsorten/go-windows-terminal-sequences",
 			"revision": "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242",
