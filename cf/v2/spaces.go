@@ -52,9 +52,6 @@ type ServicesInstanceResponse struct {
 //FindServiceInstances return guids for all Serviceinsances
 func (resource *ResourcesData) FindServiceInstances(serviceNames []string, spaceGUID string) ([]string, error) {
 	path := fmt.Sprintf(`/v2/spaces/%s/service_instances?return_user_provided_service_instances=true`, spaceGUID)
-	/*if resource.TraceLogging {
-		fmt.Printf("get service instances by name: %s - req path: %s:\n", serviceNames, path)
-	}*/
 
 	var serviceGUIDs []string
 	for _, serviceName := range serviceNames {
