@@ -29,6 +29,7 @@ type ParserArguments struct {
 	Manifest                manifest.Manifest
 	MergedEnvs              []string
 	LegacyPush              bool
+	NoRoute                 bool
 }
 
 type stringSlice []string
@@ -70,9 +71,11 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.Process, "process", "", "application process to update")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.BoolVar(&pta.ShowCrashLogs, "show-crash-log", false, "Show recent logs when applications crashes while the deployment")
-	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete or stop vendor application - default is delete")
+	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete,stop,none application action on vendor app- default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
 	flags.BoolVar(&pta.LegacyPush, "legacy-push", false, "use legacy push instead of new v3 api")
+	flags.BoolVar(&pta.NoRoute, "no-routes", false, "deploy new application without switching new routes - should be combined with vendor-option")
+	//flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	//flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
 	//flags.StringVar(&pta.DockerUserName, "docker-username", "", "pass docker username if image came from private repository")
 	//dockerPass := os.Getenv("CF_DOCKER_PASSWORD")

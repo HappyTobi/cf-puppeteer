@@ -27,8 +27,8 @@ var _ = Describe("Flag Parsing", func() {
 				"-p", "app-path",
 				"-s", "stack-name",
 				"-t", "120",
-				"-env", "foo=bar",
-				"-env", "baz=bob=true",
+				"--env", "foo=bar",
+				"--env", "baz=bob=true",
 				"--vendor-option", "stop",
 				"--invocation-timeout", "2211",
 				"--process", "process-name",
@@ -49,6 +49,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.Process).To(Equal("process-name"))
 		Expect(parsedArguments.HealthCheckType).To(Equal("http"))
 		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/health"))
+		Expect(parsedArguments.NoRoute).To(Equal(false))
 	})
 
 	It("parses a all args without timeout", func() {
@@ -62,6 +63,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-env", "foo=bar",
 				"-env", "baz=bob",
 				"--vendor-option", "stop",
+				"--no-routes",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -74,6 +76,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
+		Expect(parsedArguments.NoRoute).To(Equal(true))
 		Expect(parsedArguments.Timeout).To(Equal(2))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
 		Expect(parsedArguments.Process).To(Equal(""))
