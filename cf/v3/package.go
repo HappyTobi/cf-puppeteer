@@ -79,19 +79,20 @@ func (resource *ResourcesData) CheckPackageState(packageGUID string) (*PackageRe
 	return &response, nil
 }
 
-func (resource *ResourcesData) GenerateTempFile(appName string) (zipFile string) {
+//GenerateTempFile generate path in temp directory bases on appName
+func (resource *ResourcesData) GenerateTempFile(appName string, fileExtension string) (zipFile string) {
 	tempDir := strings.TrimSuffix(os.TempDir(), "/")
-	pathFormat := "%s/%s.zip"
+	pathFormat := "%s/%s.%s"
 	if strings.HasPrefix(appName, "/") {
-		pathFormat = "%s%s.zip"
+		pathFormat = "%s%s.%s"
 	}
-	return fmt.Sprintf(pathFormat, tempDir, appName)
+	return fmt.Sprintf(pathFormat, tempDir, appName, fileExtension)
 }
 
 //UploadApplication upload a zip file to the created package
 func (resource *ResourcesData) UploadApplication(appName string, applicationFiles string, targetURL string) (*PackageResponse, error) {
 	if !resource.zipper.IsZipFile(applicationFiles) {
-		zipFileName := resource.GenerateTempFile(appName)
+		zipFileName := resource.GenerateTempFile(appName, "zip")
 		newZipFile, err := os.Create(zipFileName)
 
 		if err != nil {

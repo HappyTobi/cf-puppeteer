@@ -31,7 +31,7 @@ var _ = Describe("cf-package test", func() {
 	Describe("Test temp file generation", func() {
 		It("app-name without prefix", func() {
 			appName := "myApplication"
-			zipFile := resourcesData.GenerateTempFile(appName)
+			zipFile := resourcesData.GenerateTempFile(appName, "zip")
 			fmt.Printf("zipFilePath %s", zipFile)
 			Expect(strings.HasSuffix(zipFile, "/myApplication.zip")).To(Equal(true))
 			Expect(strings.HasSuffix(zipFile, "//myApplication.zip")).To(Equal(false))
@@ -39,7 +39,7 @@ var _ = Describe("cf-package test", func() {
 
 		It("app-name with prefix", func() {
 			appName := "/myApplication"
-			zipFile := resourcesData.GenerateTempFile(appName)
+			zipFile := resourcesData.GenerateTempFile(appName, "zip")
 			fmt.Printf("zipFilePath %s", zipFile)
 			Expect(strings.HasSuffix(zipFile, "/myApplication.zip")).To(Equal(true))
 			Expect(strings.HasSuffix(zipFile, "//myApplication.zip")).To(Equal(false))
