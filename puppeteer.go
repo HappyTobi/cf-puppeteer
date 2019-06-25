@@ -102,7 +102,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// push
 		{
 			Forward: func() error {
-				//add v3 push
 				space, err := appRepo.conn.GetCurrentSpace()
 				if err != nil {
 					return err
@@ -114,6 +113,12 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 					return err
 				}
 				return nil
+			},
+			//When upload fails the new application will be deleted and ven app will be renamed
+			ReversePrevious: func() error {
+				ui.Failed("error while uploading / deploying the application... roll everything back")
+				_ = appRepo.DeleteApplication(parsedArguments.AppName)
+				return appRepo.RenameApplication(venName, parsedArguments.AppName)
 			},
 		},
 		// start
@@ -153,8 +158,11 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				//if vendorAppOption was set to stop
 				if strings.ToLower(parsedArguments.VendorAppOption) == "stop" {
 					return appRepo.StopApplication(venName)
+				} else if strings.ToLower(parsedArguments.VendorAppOption) == "delete" {
+					return appRepo.DeleteApplication(venName)
 				}
-				return appRepo.DeleteApplication(venName)
+				//do nothing with the ven app
+				return nil
 			},
 		},
 	}
@@ -206,7 +214,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"p":                           "path to application files",
 						"s":                           "name of the stack to use",
 						"t":                           "push timeout (in seconds)",
-						"env":                         "add environment key value pairs dynamic; can specify multiple times",
+						"-env":                        "add environment key value pairs dynamic; can specify multiple times",
 						"-vendor-option":              "option to delete or stop vendor application - default is delete",
 						"-health-check-type":          "type of health check to perform",
 						"-health-check-http-endpoint": "endpoint for the 'http' health check type",

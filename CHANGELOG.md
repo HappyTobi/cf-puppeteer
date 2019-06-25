@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - deploy without routes
 - deploy routes only 
 
+## [1.x.x] - 2019-XX-XX
+
+### Changed
+- vendor-option argument - now "stop,delete,none" could be passed
+- env argument changed to POSIX style. (--env)
+
+### Added
+- no-routes option added - ignore route switching, should be combined with vendor-option
+
+### Fixed
+- upload file with v3 api temp file path generation was wrong
+- delete application and rename vendor app when upload fails
+
 ## [1.0.0.rc.0 - rc.2 - Final] - 2019-06-13
 
 ### Added
