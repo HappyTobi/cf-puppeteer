@@ -58,12 +58,17 @@ func loadYmlFile(manifestFilePath string) (manifest Manifest, err error) {
 	return document, nil
 }
 
-//WriteYmlFile write yml file to specified path
-func WriteYmlFile(manifestFilePath string, manifest Manifest) (err error) {
+//WriteYmlFile write yml file to specified path and return them parsed
+func WriteYmlFile(manifestFilePath string, manifest Manifest) (newManifest Manifest, err error) {
 	mManifest, err := yaml.Marshal(&manifest)
 	if err != nil {
-		return err
+		return Manifest{}, err
 	}
 	bManifest := []byte(string(mManifest))
-	return ioutil.WriteFile(manifestFilePath, bManifest, 0644)
+	err = ioutil.WriteFile(manifestFilePath, bManifest, 0644)
+	if err != nil {
+		return Manifest{}, err
+	}
+	return Parse(manifestFilePath)
+
 }
