@@ -88,9 +88,9 @@ func (conn *HttpConnection) PostFormData(path string, body []byte, contentType s
 	jsonResp := string(result)
 	if conn.traceLogging {
 		if len(jsonResp) == 0 {
-			ui.Say("response from get call to path: %s was: %s", path, res.StatusCode)
+			ui.Say("response from post form data call to path: %s status code: %s", path, res.StatusCode)
 		} else {
-			ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
+			ui.Say("response from post form data call to path: %s status code: %s, was: %s", path, res.StatusCode, print.PrettyJSON(jsonResp))
 		}
 	}
 
@@ -133,9 +133,9 @@ func (conn *HttpConnection) PostJSON(path string, body []byte) (string, error) {
 	jsonResp := string(result)
 	if conn.traceLogging {
 		if len(jsonResp) == 0 {
-			ui.Say("response from get call to path: %s was: %s", path, res.StatusCode)
+			ui.Say("response from post call to path: %s status code: %s", path, res.StatusCode)
 		} else {
-			ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
+			ui.Say("response from post call to path: %s status code: %s was: %s", path, res.StatusCode, print.PrettyJSON(jsonResp))
 		}
 	}
 
