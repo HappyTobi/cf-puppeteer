@@ -30,6 +30,7 @@ type ParserArguments struct {
 	MergedEnvs              []string
 	LegacyPush              bool
 	NoRoute                 bool
+	AddRoutes               bool
 }
 
 type stringSlice []string
@@ -75,6 +76,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
 	flags.BoolVar(&pta.LegacyPush, "legacy-push", false, "use legacy push instead of new v3 api")
 	flags.BoolVar(&pta.NoRoute, "no-routes", false, "deploy new application without adding routes")
+	flags.BoolVar(&pta.AddRoutes, "add-routes", false, "add routes from manifest to app only")
 	//flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	//flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
 	//flags.StringVar(&pta.DockerUserName, "docker-username", "", "pass docker username if image came from private repository")

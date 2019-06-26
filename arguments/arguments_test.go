@@ -131,6 +131,7 @@ var _ = Describe("Flag Parsing", func() {
 				"--health-check-type", "process",
 				"--health-check-http-endpoint", "/foo/bar",
 				"--show-app-log",
+				"--add-routes",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -148,6 +149,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.Process).To(Equal("process-name"))
 		Expect(parsedArguments.HealthCheckType).To(Equal("process"))
 		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/foo/bar"))
+		Expect(parsedArguments.AddRoutes).To(Equal(true))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
