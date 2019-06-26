@@ -35,20 +35,7 @@ func (resource *ResourcesData) CreateServiceBinding(appGUID string, serviceInsta
 			return err
 		}
 
-		/*if resource.TraceLogging {
-			fmt.Printf("post to : %s with appGUID: %s serviceGUID: %s\n", path, appGUID, serviceGUID)
-			prettyPrintJSON(string(appJSON))
-		}*/
-		/*result, _ := resource.Connection.CliCommandWithoutTerminalOutput("curl", path, "-X", "POST", "-H", "Content-type: application/json", "-d",
-		string(appJSON))*/
-
 		_, _ = resource.Cli.PostJSON(path, string(appJSON))
-
-		/*
-			if resource.TraceLogging {
-				fmt.Printf("service binding created path: %s for service\n", path)
-				prettyPrintJSON(jsonResp)
-			}*/
 	}
 	return nil
 }
