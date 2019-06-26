@@ -46,8 +46,11 @@ func (adp *ApplicationPushData) PushApplication(venAppName, spaceGUID string, pa
 	if v3Push && parsedArguments.LegacyPush != true {
 		var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
 		var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
-		err := push.PushApplication(venAppName, spaceGUID, parsedArguments, v2Resources)
-		return err
+		if parsedArguments.AddRoutes {
+			return push.SwitchRoutesOnly(venAppName, parsedArguments.AppName, spaceGUID, parsedArguments.Manifest.ApplicationManifests[0].Routes, v2Resources)
+		} else {
+			return push.PushApplication(venAppName, spaceGUID, parsedArguments, v2Resources)
+		}
 	} else {
 		var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)
 		err := legacyPush.PushApplication(venAppName, spaceGUID, parsedArguments)

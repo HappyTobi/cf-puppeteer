@@ -38,7 +38,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 	venName := venerableAppName(parsedArguments.AppName)
 	var err error
 	var curApp, venApp *v2.AppResourcesEntity
-	var haveVenToCleanup bool
 
 	return []rewind.Action{
 		// get info about current app
@@ -72,9 +71,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// rename any existing app such so that next step can push to a clear space
 		{
 			Forward: func() error {
-				// Unless otherwise specified, go with our start state
-				haveVenToCleanup = (venApp != nil)
-
 				// If there is no current app running, that's great, we're done here
 				if curApp == nil {
 					return nil
@@ -85,8 +81,8 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 					return appRepo.DeleteApplication(parsedArguments.AppName)
 				}
 
-				// Do we have a ven app that will stop a rename?
-				if venApp != nil {
+				// Do we have a ven app that will stop a rename? -> normal workflow only if we dont run the add routes mode
+				if venApp != nil && parsedArguments.AddRoutes == false {
 					// Finally, since the current app claims to be healthy, we'll delete the venerable app, and rename the current over the top
 					err = appRepo.DeleteApplication(venName)
 					if err != nil {
@@ -94,9 +90,10 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 					}
 				}
 
-				// Finally, rename
-				haveVenToCleanup = true
-				return appRepo.RenameApplication(parsedArguments.AppName, venName)
+				if parsedArguments.AddRoutes == false {
+					return appRepo.RenameApplication(parsedArguments.AppName, venName)
+				}
+				return nil
 			},
 		},
 		// push
@@ -108,11 +105,7 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				}
 
 				var puppeteerPush cf.PuppeteerPush = cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
-				err = puppeteerPush.PushApplication(venName, space.Guid, parsedArguments)
-				if err != nil {
-					return err
-				}
-				return nil
+				return puppeteerPush.PushApplication(venName, space.Guid, parsedArguments)
 			},
 			//When upload fails the new application will be deleted and ven app will be renamed
 			ReversePrevious: func() error {
@@ -132,9 +125,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				return appRepo.StartApplication(parsedArguments.AppName)
 			},
 			ReversePrevious: func() error {
-				if !haveVenToCleanup {
-					return nil
-				}
 				if parsedArguments.ShowCrashLogs {
 					//print logs before application delete
 					ui.Say("show crash logs")
@@ -151,10 +141,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// delete
 		{
 			Forward: func() error {
-				if !haveVenToCleanup {
-					return nil
-				}
-
 				//if vendorAppOption was set to stop
 				if strings.ToLower(parsedArguments.VendorAppOption) == "stop" {
 					return appRepo.StopApplication(venName)
@@ -223,6 +209,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						//"-show-app-log": "tail and show application log during application start",
 						"-process":     "application process to update",
 						"-legacy-push": "use legacy push instead of new v3 api",
+						"-no-routes":   "deploy new application without adding routes",
 					},
 				},
 			},

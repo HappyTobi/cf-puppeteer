@@ -9,9 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - add argument to cleanup unused environment variables
 - log deployment time
-- sorted options
-- deploy without routes
-- deploy routes only 
+- sorted options´
+- refactor push - add rewind to all push things
 
 ## [1.x.x] - 2019-XX-XX
 
