@@ -122,7 +122,10 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 					// TODO not working anymore
 					_ = appRepo.ShowLogs(parsedArguments.AppName)
 				}
-				return appRepo.StartApplication(parsedArguments.AppName)
+				if parsedArguments.NoStart {
+					return appRepo.StartApplication(parsedArguments.AppName)
+				}
+				return nil
 			},
 			ReversePrevious: func() error {
 				if parsedArguments.ShowCrashLogs {
