@@ -63,7 +63,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-env", "foo=bar",
 				"-env", "baz=bob",
 				"--vendor-option", "stop",
-				"--no-routes",
+				"--no-route",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -131,7 +131,7 @@ var _ = Describe("Flag Parsing", func() {
 				"--health-check-type", "process",
 				"--health-check-http-endpoint", "/foo/bar",
 				"--show-app-log",
-				"--add-routes",
+				"--route-only",
 				"--no-start",
 			},
 		)
