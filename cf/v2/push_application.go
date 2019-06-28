@@ -42,6 +42,10 @@ func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID strin
 		args = append(args, "-t", timeoutS)
 	}
 
+	if parsedArguments.NoStart {
+		args = append(args, "--no-start")
+	}
+
 	ui.Say("start pushing application with arguments %s", args)
 	err := resource.Executor.Execute(args)
 	if err != nil {

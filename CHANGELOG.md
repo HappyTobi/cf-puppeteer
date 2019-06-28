@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - no-routes option added - ignore route switching, should be combined with vendor-option
+- no-start option for new deployed application
 
 ### Fixed
 - upload file with v3 api temp file path generation was wrong
