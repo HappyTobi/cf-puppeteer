@@ -151,7 +151,6 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 	}
 	app.EnvironmentVariables = envs
 
-	//TODO move to function
 	appJSON, err := json.Marshal(app)
 	if err != nil {
 		return nil, err
