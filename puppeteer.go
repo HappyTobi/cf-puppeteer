@@ -76,8 +76,8 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 					return nil
 				}
 
-				// If current app isn't started, then we'll just delete it, and we're done
-				if curApp.Entity.State != "STARTED" {
+				// If current app isn't started, then we'll just delete it, and we're done => only if route switching was not used
+				if curApp.Entity.State != "STARTED" && parsedArguments.AddRoutes == false {
 					return appRepo.DeleteApplication(parsedArguments.AppName)
 				}
 
@@ -117,12 +117,12 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// start
 		{
 			Forward: func() error {
-				ui.Say("show logs...")
 				if parsedArguments.ShowLogs {
+					ui.Say("show logs...")
 					// TODO not working anymore
 					_ = appRepo.ShowLogs(parsedArguments.AppName)
 				}
-				if parsedArguments.NoStart {
+				if parsedArguments.NoStart == false {
 					return appRepo.StartApplication(parsedArguments.AppName)
 				}
 				return nil

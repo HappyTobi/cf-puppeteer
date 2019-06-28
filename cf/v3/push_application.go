@@ -206,12 +206,12 @@ func (resource *ResourcesData) SwitchRoutes(venAppName string, pushedAppGUID str
 		if err != nil {
 			return err
 		}
-
-		ui.Say("add routes to application")
+		ui.Say("route with host %s added", route.Host)
 	}
-
+	ui.Say("routes from manifest added to application")
 	ui.Ok()
 
+	ui.Say("switch routes - defined in manifest and uses by vendor app to app")
 	venApp, err := v2Resources.GetAppMetadata(venAppName)
 	if err != v2.ErrAppNotFound && err != nil {
 		ui.Failed("metadata error %s", err)
@@ -227,7 +227,7 @@ func (resource *ResourcesData) SwitchRoutes(venAppName string, pushedAppGUID str
 		}
 	}
 
-	ui.Say("map vendor routes to new application")
+	ui.Say("map all routes to new application")
 	for _, route := range venRoutes {
 		err = resource.RouteMapping(pushedAppGUID, route)
 		ui.LoadingIndication()
