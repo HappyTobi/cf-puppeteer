@@ -12,17 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - sorted options´
 - refactor push - add rewind to all push things
 
-## [1.x.x] - 2019-XX-XX
-
-### Changed
-- vendor-option argument - now "stop,delete,none" could be passed
-- env argument changed to POSIX style. (--env)
+## [1.1.0] - 2019-06-29
 
 ### Added
+
 - no-routes option added - ignore route switching, should be combined with vendor-option
+- route-only add routes only - took routes from manifest and add them to the application (without vendor extension)
 - no-start option for new deployed application
 
+### Changed
+    
+- vendor-option argument now supports the options: "stop,delete,none"
+- env argument changed to POSIX style. (--env)
+
 ### Fixed
+
 - upload file with v3 api temp file path generation was wrong
 - delete application and rename vendor app when upload fails
 
