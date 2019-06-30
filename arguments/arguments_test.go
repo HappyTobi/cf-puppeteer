@@ -29,7 +29,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-t", "120",
 				"--env", "foo=bar",
 				"--env", "baz=bob=true",
-				"--vendor-option", "stop",
+				"--venerable-action", "stop",
 				"--invocation-timeout", "2211",
 				"--process", "process-name",
 			},
@@ -41,7 +41,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob=true"}))
-		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
+		Expect(parsedArguments.VenerableAction).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
@@ -62,7 +62,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-s", "stack-name",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
-				"--vendor-option", "stop",
+				"--venerable-action", "stop",
 				"--no-route",
 			},
 		)
@@ -73,7 +73,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
+		Expect(parsedArguments.VenerableAction).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.NoRoute).To(Equal(true))
@@ -94,7 +94,7 @@ var _ = Describe("Flag Parsing", func() {
 				"-s", "stack-name",
 				"-env", "foo=bar",
 				"-env", "baz=bob",
-				"--vendor-option", "stop",
+				"--venerable-action", "stop",
 				"--show-crash-log",
 			},
 		)
@@ -105,7 +105,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VendorAppOption).Should(Equal("stop"))
+		Expect(parsedArguments.VenerableAction).Should(Equal("stop"))
 		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(true))
 		Expect(parsedArguments.Timeout).To(Equal(60))
@@ -142,7 +142,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal([]string{"foo=bar", "baz=bob"}))
-		Expect(parsedArguments.VendorAppOption).Should(Equal("delete"))
+		Expect(parsedArguments.VenerableAction).Should(Equal("delete"))
 		Expect(parsedArguments.ShowLogs).To(Equal(true))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
@@ -195,5 +195,26 @@ var _ = Describe("Flag Parsing", func() {
 			},
 		)
 		Expect(err).To(MatchError(ErrWrongCombination))
+	})
+
+})
+
+var _ = Describe("Deprecated flag parsing", func() {
+	It("deprecated argument test", func() {
+
+		arg, err := ParseArgs(
+			[]string{
+				"zero-downtime-push",
+				"appname",
+				"-f", "../fixtures/manifest.yml",
+				"-p", "app-path",
+				"--vendor-option", "stop",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(arg.AppName).To(Equal("appname"))
+		Expect(arg.ManifestPath).To(Equal("../fixtures/manifest.yml"))
+		Expect(arg.VenerableAction).Should(Equal("stop"))
+		Expect(arg.VendorAppOption).Should(Equal("stop"))
 	})
 })

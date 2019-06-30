@@ -136,7 +136,7 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 
 				// If the app cannot start we'll have a lingering application
 				// We delete this application so that the rename can succeed
-				appRepo.DeleteApplication(parsedArguments.AppName)
+				_ = appRepo.DeleteApplication(parsedArguments.AppName)
 
 				return appRepo.RenameApplication(venName, parsedArguments.AppName)
 			},
@@ -144,10 +144,10 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// delete
 		{
 			Forward: func() error {
-				//if vendorAppOption was set to stop
-				if strings.ToLower(parsedArguments.VendorAppOption) == "stop" {
+				//if venerableAction was set to stop
+				if strings.ToLower(parsedArguments.VenerableAction) == "stop" {
 					return appRepo.StopApplication(venName)
-				} else if strings.ToLower(parsedArguments.VendorAppOption) == "delete" {
+				} else if strings.ToLower(parsedArguments.VenerableAction) == "delete" {
 					return appRepo.DeleteApplication(venName)
 				}
 				//do nothing with the ven app
@@ -204,7 +204,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"s":                           "name of the stack to use",
 						"t":                           "push timeout (in seconds)",
 						"-env":                        "add environment key value pairs dynamic; can specify multiple times",
-						"-vendor-option":              "option to delete or stop vendor application - default is delete",
+						"-venerable-action":           "option to delete, stop or do nothing with venerable application - default is delete",
 						"-health-check-type":          "type of health check to perform",
 						"-health-check-http-endpoint": "endpoint for the 'http' health check type",
 						"-invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",

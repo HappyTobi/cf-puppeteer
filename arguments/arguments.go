@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/happytobi/cf-puppeteer/manifest"
+	"github.com/happytobi/cf-puppeteer/ui"
 	"regexp"
 	"strings"
 )
@@ -21,6 +22,7 @@ type ParserArguments struct {
 	Process                 string
 	StackName               string
 	VendorAppOption         string
+	VenerableAction         string
 	Envs                    []string
 	ShowLogs                bool
 	ShowCrashLogs           bool
@@ -74,6 +76,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.BoolVar(&pta.ShowCrashLogs, "show-crash-log", false, "Show recent logs when applications crashes while the deployment")
 	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete,stop,none application action on vendor app- default is delete")
+	flags.StringVar(&pta.VenerableAction, "venerable-action", "delete", "option to delete,stop,none application action on vendor app- default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
 	flags.BoolVar(&pta.LegacyPush, "legacy-push", false, "use legacy push instead of new v3 api")
 	flags.BoolVar(&pta.NoRoute, "no-route", false, "deploy new application without adding routes")
@@ -168,6 +171,12 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 		mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s=%s", k, v))
 	}
 	pta.MergedEnvs = mergedEnvs
+
+	//print waring for deprecated arguments
+	if strings.ToLower(pta.VendorAppOption) != "delete" {
+		ui.Warn("deprecated argument used, please use --venerable-action instead - argument will dropped in next version")
+		pta.VenerableAction = pta.VendorAppOption
+	}
 
 	return pta, nil
 }
