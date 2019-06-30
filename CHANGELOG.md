@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - sorted options´
 - refactor push - add rewind to all push things
 
+## [1.1.1] - 2019-06-30
+
+### Changed
+- vendor-option to venerable-action - deprecation message will be written if old argument was used
+- no-route option set venerable-action to none as default
+
 ## [1.1.0] - 2019-06-29
 
 ### Added
