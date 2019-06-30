@@ -36,6 +36,11 @@ func Failed(message string, args ...interface{}) {
 	ui.Failed(message, args...)
 }
 
+//Warn message see cf/terminal
+func Warn(message string, args ...interface{}) {
+	ui.Warn(message, args...)
+}
+
 //LoadingIndication message see cf/terminal
 func LoadingIndication() {
 	ui.LoadingIndication()
