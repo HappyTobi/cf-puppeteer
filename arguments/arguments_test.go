@@ -197,6 +197,21 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(err).To(MatchError(ErrWrongCombination))
 	})
 
+	It("no-route argument with default venerable-action value", func() {
+		parsedArguments, err := ParseArgs(
+			[]string{
+				"zero-downtime-push",
+				"appname",
+				"-f", "../fixtures/manifest.yml",
+				"-p", "app-path",
+				"--no-route",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(parsedArguments.NoRoute).Should(Equal(true))
+		Expect(parsedArguments.VenerableAction).Should(Equal("none"))
+	})
+
 })
 
 var _ = Describe("Deprecated flag parsing", func() {

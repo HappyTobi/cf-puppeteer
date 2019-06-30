@@ -178,5 +178,21 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 		pta.VenerableAction = pta.VendorAppOption
 	}
 
+	//no-route set venerable-action to delete as default - but can be overwritten
+	if pta.NoRoute && argPassed(flags, "venerable-action") == false {
+		pta.VenerableAction = "none"
+	}
+
 	return pta, nil
+}
+
+//search vor argument in name in passed args
+func argPassed(flags *flag.FlagSet, name string) (found bool) {
+	found = false
+	flags.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }
