@@ -1,20 +1,21 @@
 package main
 
 import (
-	"code.cloudfoundry.org/cli/cf/api/logs"
-	"code.cloudfoundry.org/cli/plugin"
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"strings"
+	"time"
+
+	"code.cloudfoundry.org/cli/cf/api/logs"
+	"code.cloudfoundry.org/cli/plugin"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/rewind"
 	"github.com/happytobi/cf-puppeteer/ui"
-	"log"
-	"os"
-	"strings"
-	"time"
 )
 
 func fatalIf(err error) {
@@ -190,7 +191,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 1,
-			Build: 0,
+			Build: 1,
 		},
 		Commands: []plugin.Command{
 			{
