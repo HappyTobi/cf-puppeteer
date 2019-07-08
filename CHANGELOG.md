@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - sorted options´
 - refactor push - add rewind to all push things
 
+## [1.1.2] - 2019-XX-XX
+
+### Changed
+- refactor environment parsing 
+
+### Fixed
+- environment parsing, now it's more stable
+
+ 
+
 ## [1.1.1] - 2019-06-30
 
 ### Changed
