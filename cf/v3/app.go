@@ -3,6 +3,7 @@ package v3
 import (
 	"encoding/json"
 	"fmt"
+	env_convert "github.com/happytobi/cf-puppeteer/cf/utils"
 	"strings"
 	"time"
 )
@@ -140,16 +141,14 @@ func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpa
 	app.Relationships.Space.Data.GUID = spaceGUID
 	app.Lifecycle.LifecycleType = "buildpack"
 	app.Lifecycle.LifecycleData.Stack = stack
-	app.Lifecycle.LifecycleData.Buildpacks = buildpacks
-
-	envs := make(map[string]string)
-	for _, v := range envVars {
-		envPair := strings.Split(v, "=")
-		envKey := strings.TrimSpace(envPair[0])
-		envVal := strings.TrimSpace(envPair[1])
-		envs[envKey] = envVal
+	if len(buildpacks) > 1 {
+		app.Lifecycle.LifecycleData.Buildpacks = buildpacks
+	} else {
+		app.Lifecycle.LifecycleData.Buildpacks = []string{""}
 	}
-	app.EnvironmentVariables = envs
+
+	//convert passed variables
+	app.EnvironmentVariables = env_convert.Convert(envVars)
 
 	appJSON, err := json.Marshal(app)
 	if err != nil {
