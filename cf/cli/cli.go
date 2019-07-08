@@ -40,7 +40,7 @@ func (conn *Connection) GetJSON(path string) (string, error) {
 	jsonResp := strings.Join(result, "")
 
 	if conn.traceLogging {
-		ui.Say("response from get call to path: %s was: %s %s", path, jsonResp, print.PrettyJSON(jsonResp))
+		ui.Say("response from GET call to path: %s was: %s %s", path, jsonResp, print.PrettyJSON(jsonResp))
 	}
 
 	return jsonResp, nil
@@ -60,7 +60,7 @@ func (conn *Connection) PostJSON(path string, jsonBody string) (string, error) {
 	}
 	jsonResp := strings.Join(result, "")
 	if conn.traceLogging {
-		ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
+		ui.Say("response from POST call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
 	}
 	return jsonResp, nil
 }
@@ -75,7 +75,7 @@ func (conn *Connection) PatchJSON(path string, jsonBody string) (string, error) 
 	}
 	jsonResp := strings.Join(result, "")
 	if conn.traceLogging {
-		ui.Say("response from get call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
+		ui.Say("response from PATH call to path: %s was: %s", path, print.PrettyJSON(jsonResp))
 	}
 	return jsonResp, nil
 }
