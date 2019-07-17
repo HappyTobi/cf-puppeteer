@@ -15,16 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.2] - 2019-XX-XX
 
 ### Changed
-- refactor environment parsing 
+
+- refactor environment parsing
+- clean code
 
 ### Fixed
-- environment parsing, now it's more stable
 
- 
+- environment parsing, now it's more stable
+- error handling while uploading artifact
 
 ## [1.1.1] - 2019-06-30
 
 ### Changed
+
 - vendor-option to venerable-action - deprecation message will be written if old argument was used
 - no-route option set venerable-action to none as default
 
@@ -37,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - no-start option for new deployed application
 
 ### Changed
-    
+
 - vendor-option argument now supports the options: "stop,delete,none"
 - env argument changed to POSIX style. (--env)
 
@@ -57,9 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - cleanup code (refactor the complete plugin)
 - colorized logging - use default cf terminal logging with color
-- remove some parameters (like var, vars-file etc.)  
+- remove some parameters (like var, vars-file etc.)
 - update ParseArgs to struct instead of multi return values
-- code splitting / complete refactoring 
+- code splitting / complete refactoring
 
 ### Fixed
 
@@ -71,7 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - add argument to stop old service only instead of deletion
 - choose between v2 and v3 push (v2 = legacy option)
-
 
 ## [0.0.14] - 2019-03-25
 

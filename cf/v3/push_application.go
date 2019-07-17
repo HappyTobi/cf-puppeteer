@@ -1,16 +1,17 @@
 package v3
 
 import (
+	"errors"
+	"time"
+
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/plugin"
-	"errors"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"github.com/jinzhu/copier"
-	"time"
 )
 
 //Push interface with all v3 actions
@@ -107,7 +108,7 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 		time.Sleep(duration)
 		createPackageResponse, err = resource.CheckPackageState(createPackageResponse.GUID)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 	ui.Say("")
@@ -135,7 +136,7 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 		buildResponse, err = resource.CheckBuildState(buildResponse.GUID)
 		ui.LoadingIndication()
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 	ui.Say("")
