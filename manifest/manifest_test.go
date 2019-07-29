@@ -62,6 +62,16 @@ var _ = Describe("Parse invalid Application Manifest", func() {
 	})
 })
 
+var _ = Describe("Parse comp Manifest", func() {
+	It("parses complicated manifest", func() {
+		manifest, err := Parse("../fixtures/defaultMultiManifest.yml")
+		Expect(err).Should(BeNil())
+		Expect(manifest.ApplicationManifests).ShouldNot(BeNil())
+		Expect(manifest.ApplicationManifests[0].Name).Should(Equal("app"))
+		Expect(manifest.ApplicationManifests[0].DiskQuota).Should(Equal("1G"))
+	})
+})
+
 var _ = Describe("Write new manifest", func() {
 	It("write manifest file to specified path", func() {
 		manifest, err := Parse("../fixtures/manifest.yml")

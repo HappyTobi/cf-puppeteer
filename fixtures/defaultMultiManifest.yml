@@ -1,0 +1,23 @@
+---
+defaults: &defaults
+  memory: 1G
+  disk_quota: 1G
+  buildpacks:
+    - ruby_latest_buildpack
+  env:
+    RAILS_ENV: preview
+    SOLR_URL: https://abcd.com/solr/core
+  services:
+    - postgres
+    - redis
+applications:
+  - name: app
+    <<: *defaults
+    env:
+      ENABLE_SCHEDULER: true
+    command: rake db:seed_or_migrate && rails s -p $PORT -e $RAILS_ENV
+  - name: sidekiq
+    <<: *defaults
+    health-check-type: process
+    no-route: true
+    command: sidekiq -q default -q mailers
