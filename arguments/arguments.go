@@ -168,7 +168,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	var mergedEnvs []string
 	mergedEnvs = append(mergedEnvs, pta.Envs...)
 	for k, v := range pta.Manifest.ApplicationManifests[0].Env {
-		mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s=%s", k, v))
+		mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s %s", k, v))
 	}
 	pta.MergedEnvs = mergedEnvs
 

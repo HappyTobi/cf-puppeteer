@@ -3,7 +3,8 @@ package v3
 import (
 	"encoding/json"
 	"fmt"
-	env_convert "github.com/happytobi/cf-puppeteer/cf/utils"
+	"github.com/happytobi/cf-puppeteer/arguments"
+	"github.com/happytobi/cf-puppeteer/ui"
 	"strings"
 	"time"
 )
@@ -133,7 +134,7 @@ type ApplicationProcessesResponse struct {
 }
 
 //PushApp push app with v3 api to cloudfoundry
-func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpacks []string, stack string, envVars []string) (*AppResponse, error) {
+/*func (resource *ResourcesData) PushApp(appName string, spaceGUID string, buildpacks []string, stack string, envVars []string) (*AppResponse, error) {
 	path := fmt.Sprintf(`/v3/apps`)
 
 	var app Apps
@@ -184,6 +185,34 @@ func (resource *ResourcesData) GetApp(appGUID string) (*AppResponse, error) {
 		return nil, err
 	}
 	return &response, nil
+}*/
+
+func (resource *ResourcesData) PushApp(parsedArguments *arguments.ParserArguments) (err error) {
+	args := []string{"v3-push", parsedArguments.AppName, "--no-start"}
+	if parsedArguments.AppPath != "" {
+		args = append(args, "-p", parsedArguments.AppPath)
+	}
+
+	if parsedArguments.NoRoute == true {
+		args = append(args, "--no-route")
+	}
+
+	ui.Say("start pushing application with arguments %s", args)
+	err = resource.Executor.Execute(args)
+	if err != nil {
+		return err
+	}
+
+	ui.Say("apply environment variables")
+	for _, env := range parsedArguments.MergedEnvs {
+		args = []string{"v3-set-env", parsedArguments.AppName, env}
+		err = resource.Executor.Execute(args)
+		if err != nil {
+			ui.Failed("could not set environment variable %s to application %s", env, parsedArguments.AppName)
+		}
+	}
+
+	return nil
 }
 
 //StartApp start app on cf
