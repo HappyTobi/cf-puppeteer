@@ -7,7 +7,7 @@ applications:
   disk_quota: 2G
   env:
     PHP_ENV: production
-  instances: 1
+  instances:
   memory: 256M
   routes:
   - route: url.example.com

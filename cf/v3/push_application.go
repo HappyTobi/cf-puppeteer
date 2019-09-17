@@ -3,6 +3,7 @@ package v3
 import (
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/plugin"
+
 	"errors"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
@@ -59,119 +60,30 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 	invocationTimeout := parsedArguments.InvocationTimeout
 	timeout := parsedArguments.Timeout*/
 
-	err := resource.PushApp(parsedArguments)
+	err := resource.CreateApp(parsedArguments)
 	if err != nil {
 		return err
 	}
+	ui.Ok()
 
 	err = resource.AssignAppManifest(parsedArguments)
 	if err != nil {
 		return err
 	}
+	ui.Ok()
+
+	err = resource.PushApp(parsedArguments)
+	if err != nil {
+		return err
+	}
+	ui.Ok()
 
 	err = resource.SetHealthCheck(parsedArguments.AppName, parsedArguments.HealthCheckType, parsedArguments.HealthCheckHTTPEndpoint, parsedArguments.InvocationTimeout, parsedArguments.Process)
 	if err != nil {
 		return err
 	}
-
-	/*appResponse, err := resource.PushApp(appName, spaceGUID, buildpacks, applicationStack, parsedArguments.MergedEnvs)
-	if err != nil {
-		return err
-	}*/
-
-	/*var manifestToAssign = manifestPath
-	//generate test tmp manifest file
-	if parsedArguments.NoRoute {
-		manifestToAssign, err = resource.GenerateNoRouteYml(appName, parsedArguments.Manifest)
-		if err != nil {
-			return err
-		}
-	}*/
-
-	/*
-		createPackageResponse, err := resource.CreatePackage(appResponse.GUID)
-		if err != nil {
-			return err
-		}
-
-		//map services
-		serviceGUIDs, err := v2Resources.FindServiceInstances(serviceNames, spaceGUID)
-		if err != nil {
-			return err
-		}
-
-		err = resource.CreateServiceBinding(appResponse.GUID, serviceGUIDs)
-		if err != nil {
-			return err
-		}
-
-		createPackageResponse, err = resource.UploadApplication(appName, appPath, createPackageResponse.Links.Upload.Href)
-		if err != nil {
-			return err
-		}
-
-		duration, _ := time.ParseDuration("1s")
-
-		ui.Say("start uploading application")
-		for createPackageResponse.State != "FAILED" &&
-			createPackageResponse.State != "READY" &&
-			createPackageResponse.State != "EXPIRED" {
-			ui.LoadingIndication()
-			time.Sleep(duration)
-			createPackageResponse, err = resource.CheckPackageState(createPackageResponse.GUID)
-			if err != nil {
-				return err
-			}
-		}
-		ui.Say("")
-		ui.Ok()
-
-		ui.Say("create build")
-		buildResponse, err := resource.CreateBuild(createPackageResponse.GUID, buildpacks)
-		if err != nil {
-			return err
-		}
-		ui.Ok()
-	*/
-	//set timeouts
-	/*ui.Say("set timeout parameters")
-
-	err = resource.SetHealthCheck(parsedArguments.AppName,parsedArguments.HealthCheckType, parsedArguments.HealthCheckHTTPEndpoint, parsedArguments.InvocationTimeout,parsedArguments.Process)
-	if err != nil {
-		return err
-	}
-	ui.Ok()*/
-
-	/*ui.Say("stage application")
-	for buildResponse.State != "FAILED" &&
-		buildResponse.State != "STAGED" {
-		time.Sleep(duration)
-		buildResponse, err = resource.CheckBuildState(buildResponse.GUID)
-		ui.LoadingIndication()
-		if err != nil {
-			return err
-		}
-	}
-	ui.Say("")
 	ui.Ok()
 
-	dropletResponse, err := resource.GetDropletGUID(buildResponse.GUID)
-	err = resource.AssignApp(appResponse.GUID, dropletResponse.GUID)
-	if err != nil {
-		return err
-	}*/
-
-	//call method only if route switching was "enabled"
-	//check if apply manifest is enought
-	/*if parsedArguments.NoRoute == false {
-		ui.Say("start adding and switching routes")
-		err = resource.SwitchRoutes(venAppName, appResponse.GUID, parsedArguments.Manifest.ApplicationManifests[0].Routes, spaceGUID, v2Resources)
-		if err != nil {
-			return err
-		}
-	} else {
-		ui.Say("skip adding routes")
-	}*/
 	return nil
 }
 
@@ -282,38 +194,3 @@ func (resource *ResourcesData) SetHealthCheck(appName string, healthCheckType st
 	ui.Ok()
 	return nil
 }
-
-// SetHealthCheckV3 sets the health check for the specified application using the given health check configuration
-/*func (resource *ResourcesData) SetHealthCheck(healthCheckType string, healthCheckHTTPEndpoint string, invocationTimeout int, timeout int, process string, GUID string) error {
-	// Without a health check type, the CF command is not valid. Therefore, leave if the type is not specified
-	if healthCheckType == "" {
-		return nil
-	}
-
-	// load application by guid
-	appProcessEntity, err := resource.GetApplicationProcessWebInformation(GUID)
-	if err != nil {
-		return err
-	}
-
-	applicationEntity := ApplicationEntity{}
-	applicationEntity.Command = appProcessEntity.Command
-	applicationEntity.HealthCheck.HealthCheckType = healthCheckType
-
-	//check passed timeout
-	if timeout > 0 {
-		applicationEntity.HealthCheck.Data.Timeout = timeout
-	}
-
-	if healthCheckType == "http" && healthCheckHTTPEndpoint != "" {
-		applicationEntity.HealthCheck.Data.Endpoint = healthCheckHTTPEndpoint
-		if invocationTimeout >= 0 {
-			applicationEntity.HealthCheck.Data.InvocationTimeout = invocationTimeout
-		}
-	} else if process != "" && (healthCheckType == "process" || healthCheckType == "port") {
-		applicationEntity.ProcessType = process
-	}
-
-	err = resource.UpdateApplicationProcessWebInformation(appProcessEntity.GUID, applicationEntity)
-	return err
-}*/
