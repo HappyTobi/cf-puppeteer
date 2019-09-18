@@ -13,34 +13,6 @@ var (
 	ErrAppNotFound = errors.New("application not found")
 )
 
-//AppRoutesResponse application response struct
-type AppRoutesResponse struct {
-	NextURL   string `json:"next_url,omitempty"`
-	PrevURL   string `json:"prev_url,omitempty"`
-	Resources []struct {
-		Entity struct {
-			AppsURL             string      `json:"apps_url"`
-			DomainGUID          string      `json:"domain_guid"`
-			DomainURL           string      `json:"domain_url"`
-			Host                string      `json:"host"`
-			Path                string      `json:"path"`
-			Port                interface{} `json:"port"`
-			RouteMappingsURL    string      `json:"route_mappings_url"`
-			ServiceInstanceGUID interface{} `json:"service_instance_guid"`
-			SpaceGUID           string      `json:"space_guid"`
-			SpaceURL            string      `json:"space_url"`
-		} `json:"entity"`
-		Metadata struct {
-			CreatedAt time.Time `json:"created_at"`
-			GUID      string    `json:"guid"`
-			UpdatedAt time.Time `json:"updated_at"`
-			URL       string    `json:"url"`
-		} `json:"metadata"`
-	} `json:"resources"`
-	TotalPages   int `json:"total_pages"`
-	TotalResults int `json:"total_results"`
-}
-
 type AppResourcesEntity struct {
 	Metadata Metadata `json:"metadata"`
 	Entity   Entity   `json:"entity"`
@@ -102,25 +74,6 @@ type Entity struct {
 	EventsURL            string    `json:"events_url"`
 	ServiceBindingsURL   string    `json:"service_bindings_url"`
 	RouteMappingsURL     string    `json:"route_mappings_url"`
-}
-
-//LoadAppRoutes
-func (resource *ResourcesData) LoadAppRoutes(appGUID string) (*AppRoutesResponse, error) {
-	ui.Say("LoadAppRoutes called")
-	path := fmt.Sprintf(`/v2/apps/%s/routes`, appGUID)
-
-	jsonResult, err := resource.cli.GetJSON(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var response AppRoutesResponse
-	err = json.Unmarshal([]byte(jsonResult), &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
 }
 
 //GetAppMetadata

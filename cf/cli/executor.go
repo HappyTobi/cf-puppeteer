@@ -26,10 +26,15 @@ func (ec executor) Execute(arguments []string) (err error) {
 		return err
 	}
 
+	outChannel := os.NewFile(0, os.DevNull)
+	if ec.traceLogging {
+		outChannel = os.Stdout
+	}
+
 	cmd := exec.Cmd{
 		Path:   cfCmdToolPath,
 		Args:   append([]string{cfCmdToolPath}, arguments...),
-		Stdout: os.Stdout,
+		Stdout: outChannel,
 		Stderr: os.Stderr,
 	}
 

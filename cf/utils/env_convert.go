@@ -6,18 +6,6 @@ import (
 	"strings"
 )
 
-/*func Convert(envVars []string) (conVars map[string]string) {
-	envs := make(map[string]string)
-	for _, v := range envVars {
-		envPair := strings.Split(v, SplitChar)
-		envKey := strings.TrimSpace(envPair[0])
-		envVal := strings.TrimSpace(envPair[1])
-		envs[envKey] = envVal
-	}
-
-	return envs
-}*/
-
 func Convert(envVars []string) (conVars map[string]string) {
 	replacer := strings.NewReplacer("'", "\"", "`", "\"")
 	envs := make(map[string]string)

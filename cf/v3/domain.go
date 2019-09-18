@@ -9,8 +9,8 @@ import (
 )
 
 type Routes struct {
-	Host       string
-	DomainGUID string
+	Host   string
+	Domain string
 }
 
 //DomainResponse reponse while loading domains
@@ -73,8 +73,8 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 					hostName := strings.ReplaceAll(domain, domainRes.Name, "")
 					hostName = strings.TrimRight(hostName, ".")
 					newRoute := &Routes{
-						Host:       hostName,
-						DomainGUID: domainRes.GUID,
+						Host:   hostName,
+						Domain: domainRes.Name,
 					}
 					domainGUID[domain] = *newRoute
 				}
@@ -96,8 +96,8 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 						hostName := strings.ReplaceAll(domain, domainRes.Name, "")
 						hostName = strings.TrimRight(hostName, ".")
 						newRoute := &Routes{
-							Host:       hostName,
-							DomainGUID: domainRes.GUID,
+							Host:   hostName,
+							Domain: domainRes.Name,
 						}
 						domainGUID[domain] = *newRoute
 					}

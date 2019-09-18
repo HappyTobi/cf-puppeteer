@@ -3,8 +3,6 @@ package v3
 import (
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/plugin"
-
-	"errors"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
@@ -16,7 +14,7 @@ import (
 //Push interface with all v3 actions
 type Push interface {
 	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error
-	SwitchRoutesOnly(venAppName string, appName string, spaceGUID string, routes []map[string]string, v2Resources v2.Resources) error
+	SwitchRoutesOnly(venAppName string, appName string, routes []map[string]string) error
 }
 
 //ResourcesData internal struct with connection an tracing options etc
@@ -40,44 +38,38 @@ func NewV3Push(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 
 }
 
-var (
-	ErrAppNotFound = errors.New("application not found")
-)
-
 //PushApplication call all methods to push a complete application
 func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error {
 
-	/*buildpacks := parsedArguments.Manifest.ApplicationManifests[0].Buildpacks
-	applicationStack := parsedArguments.Manifest.ApplicationManifests[0].Stack
-	appName := parsedArguments.AppName
-	appPath := parsedArguments.AppPath
-	serviceNames := parsedArguments.Manifest.ApplicationManifests[0].Services
-	manifestPath := parsedArguments.ManifestPath
-	routes := parsedArguments.Manifest.ApplicationManifests[0].Routes
-	healthCheckType := parsedArguments.HealthCheckType
-	healthCheckHttpEndpoint := parsedArguments.HealthCheckHTTPEndpoint
-	process := parsedArguments.Process
-	invocationTimeout := parsedArguments.InvocationTimeout
-	timeout := parsedArguments.Timeout*/
-
+	ui.Say("create application %s", parsedArguments.AppName)
 	err := resource.CreateApp(parsedArguments)
 	if err != nil {
 		return err
 	}
-	ui.Ok()
 
-	err = resource.AssignAppManifest(parsedArguments)
+	ui.Say("apply manifest file")
+	manifestPath := parsedArguments.ManifestPath
+	if parsedArguments.NoRoute {
+		newManifestPath, err := resource.GenerateNoRouteYml(parsedArguments.AppName, parsedArguments.Manifest)
+		if err != nil {
+			return err
+		}
+		ui.Say("use no route manifest")
+		manifestPath = newManifestPath
+	}
+
+	err = resource.AssignAppManifest(manifestPath)
 	if err != nil {
 		return err
 	}
-	ui.Ok()
 
+	ui.Say("push application")
 	err = resource.PushApp(parsedArguments)
 	if err != nil {
 		return err
 	}
-	ui.Ok()
 
+	ui.Say("set health-check with type: %s for application %s", parsedArguments.HealthCheckType, parsedArguments.AppName)
 	err = resource.SetHealthCheck(parsedArguments.AppName, parsedArguments.HealthCheckType, parsedArguments.HealthCheckHTTPEndpoint, parsedArguments.InvocationTimeout, parsedArguments.Process)
 	if err != nil {
 		return err
@@ -88,13 +80,8 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 }
 
 //SwitchRoutes switch route interface method to provide switch routes only option
-func (resource *ResourcesData) SwitchRoutesOnly(venAppName string, appName string, spaceGUID string, routes []map[string]string, v2Resources v2.Resources) (err error) {
-	appResource, err := v2Resources.GetAppMetadata(appName)
-	if err != nil {
-		return err
-	}
-
-	return resource.SwitchRoutes(venAppName, appResource.Metadata.GUID, routes, spaceGUID, v2Resources)
+func (resource *ResourcesData) SwitchRoutesOnly(venAppName string, appName string, routes []map[string]string) (err error) {
+	return resource.SwitchRoutes(venAppName, appName, routes)
 }
 
 //GenerateNoRouteYml generate temp manifest without routes to skip route creation
@@ -118,52 +105,30 @@ func (resource *ResourcesData) GenerateNoRouteYml(appName string, originalManife
 }
 
 //SwitchRoutes add new routes and switch "old" one from vendor app to the one
-func (resource *ResourcesData) SwitchRoutes(venAppName string, pushedAppGUID string, routes []map[string]string, spaceGUID string, v2Resources v2.Resources) (err error) {
+func (resource *ResourcesData) SwitchRoutes(venAppName string, appName string, routes []map[string]string) (err error) {
 	domains, err := resource.GetDomain(routes)
 	if err != nil {
 		return err
 	}
 
+	ui.Say("map routes to new application %s", appName)
 	for _, route := range *domains {
-		routeResponse, err := v2Resources.CreateRoute(spaceGUID, route.DomainGUID, route.Host)
+		err = resource.MapRoute(appName, route.Host, route.Domain)
 		if err != nil {
-			return err
-		}
-		err = resource.RouteMapping(pushedAppGUID, routeResponse.Metadata.GUID)
-		if err != nil {
-			return err
-		}
-		ui.Say("route with host %s added", route.Host)
-	}
-	ui.Say("routes from manifest added to application")
-	ui.Ok()
-
-	ui.Say("switch routes - defined in manifest and uses by vendor app to app")
-	venApp, err := v2Resources.GetAppMetadata(venAppName)
-	if err != v2.ErrAppNotFound && err != nil {
-		ui.Failed("metadata error %s", err)
-		return err
-	}
-
-	var venRoutes []string
-
-	if venApp != nil {
-		venRoutes, err = resource.GetRoutesApp(venApp.Metadata.GUID)
-		if err != nil {
-			return err
+			//loop through
+			ui.Warn("could not map route %s.%s to application", route.Host, route.Domain, appName)
 		}
 	}
 
-	ui.Say("map all routes to new application")
-	for _, route := range venRoutes {
-		err = resource.RouteMapping(pushedAppGUID, route)
-		ui.LoadingIndication()
+	ui.Say("remove routes from venerable application %s", venAppName)
+	for _, route := range *domains {
+		err = resource.UnMapRoute(venAppName, route.Host, route.Domain)
 		if err != nil {
-			return err
+			//loop through
+			ui.Warn("could not remove route %s.%s from application", route.Host, route.Domain, venAppName)
 		}
 	}
-	ui.Say("")
-	ui.Ok()
+
 	return nil
 }
 
@@ -176,21 +141,20 @@ func (resource *ResourcesData) SetHealthCheck(appName string, healthCheckType st
 	args := []string{"v3-set-health-check", appName}
 
 	if healthCheckType == "http" && healthCheckHTTPEndpoint != "" {
-
 		args = append(args, healthCheckType, "--endpoint", healthCheckHTTPEndpoint)
 		if invocationTimeout >= 0 {
 			args = append(args, "--invocation-timeout", string(invocationTimeout))
 		}
-	} else if process != "" && (healthCheckType == "process" || healthCheckType == "port") {
+	} else if process != "" && healthCheckType == "process" {
 		args = append(args, healthCheckType, "--process", process)
+	} else if healthCheckType == "port" {
+		args = append(args, healthCheckType)
 	}
 
-	ui.Say("apply health check timeouts")
 	err = resource.Executor.Execute(args)
 	if err != nil {
 		ui.Failed("could not set health check timeouts", err)
 		return err
 	}
-	ui.Ok()
 	return nil
 }

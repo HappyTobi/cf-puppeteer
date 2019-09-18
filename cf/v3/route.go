@@ -1,36 +1,27 @@
 package v3
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
-//RouteMapping
-type RouteMapping struct {
-	Relationships struct {
-		App struct {
-			GUID string `json:"guid"`
-		} `json:"app"`
-		Route struct {
-			GUID string `json:"guid"`
-		} `json:"route"`
-	} `json:"relationships"`
-}
-
-//RouteMapping map route to application REMOVE?
-func (resource *ResourcesData) RouteMapping(appGUID string, routeGUID string) error {
-	path := fmt.Sprintf(`v3/route_mappings`)
-
-	var v3RouteMapping RouteMapping
-	v3RouteMapping.Relationships.App.GUID = appGUID
-	v3RouteMapping.Relationships.Route.GUID = routeGUID
-
-	appJSON, err := json.Marshal(v3RouteMapping)
+//MapRoute map route to application
+func (resource *ResourcesData) MapRoute(appName string, host string, domain string) (err error) {
+	args := []string{"map-route", appName, domain, "--hostname", host}
+	fmt.Printf("map route %v", args)
+	err = resource.Executor.Execute(args)
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
-	_, err = resource.Cli.PostJSON(path, string(appJSON))
-
-	return err
+//UnMapRoute remove route from application
+func (resource *ResourcesData) UnMapRoute(appName string, host string, domain string) (err error) {
+	args := []string{"unmap-route", appName, domain, "--hostname", host}
+	fmt.Printf("map route %v", args)
+	err = resource.Executor.Execute(args)
+	if err != nil {
+		return err
+	}
+	return nil
 }
