@@ -1,5 +1,5 @@
 # CF-Puppeteer  
----
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/HappyTobi/cf-puppeteer)](https://goreportcard.com/report/github.com/HappyTobi/cf-puppeteer)
 [![APACHE-2 License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/HappyTobi/cf-puppeteer/blob/master/LICENSE)
 [![Github All Releases](https://img.shields.io/github/downloads/HappyTobi/cf-puppeteer/total.svg)](https://github.com/HappyTobi/cf-puppeteer/releases)
