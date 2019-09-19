@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/HappyTobi/cf-puppeteer)](https://goreportcard.com/report/github.com/HappyTobi/cf-puppeteer)
 [![APACHE-2 License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/HappyTobi/cf-puppeteer/blob/master/LICENSE)
 [![Github All Releases](https://img.shields.io/github/downloads/HappyTobi/cf-puppeteer/total.svg)](https://github.com/HappyTobi/cf-puppeteer/releases)
+[![Github All Releases](https://img.shields.io/github/v/release/HappyTobi/cf-puppeteer?include_prereleases)](https://github.com/HappyTobi/cf-puppeteer/releases)
 
 *cf plugin for hands-off, zero downtime application deploys*
 
