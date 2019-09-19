@@ -11,6 +11,7 @@ import (
 	"github.com/happytobi/cf-puppeteer/ui"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 //Push interface with all v3 actions
@@ -145,7 +146,7 @@ func (resource *ResourcesData) SetHealthCheck(appName string, healthCheckType st
 	if healthCheckType == "http" && healthCheckHTTPEndpoint != "" {
 		args = append(args, healthCheckType, "--endpoint", healthCheckHTTPEndpoint)
 		if invocationTimeout >= 0 {
-			args = append(args, "--invocation-timeout", string(invocationTimeout))
+			args = append(args, "--invocation-timeout", strconv.Itoa(invocationTimeout))
 		}
 	} else if process != "" && healthCheckType == "process" {
 		args = append(args, healthCheckType, "--process", process)
@@ -155,7 +156,7 @@ func (resource *ResourcesData) SetHealthCheck(appName string, healthCheckType st
 
 	err = resource.Executor.Execute(args)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("could not set healthcheck with type: %s - endpoint: %s - invocationTimeout %d", healthCheckType, healthCheckHTTPEndpoint, invocationTimeout))
+		return errors.Wrap(err, fmt.Sprintf("could not set healthcheck with type: %s - endpoint: %s - invocationTimeout %v", healthCheckType, healthCheckHTTPEndpoint, invocationTimeout))
 	}
 	return nil
 }
