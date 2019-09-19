@@ -1,8 +1,10 @@
 package v3
 
 import (
+	"fmt"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/ui"
+	"github.com/pkg/errors"
 )
 
 /* TODO add type to docker */
@@ -10,7 +12,7 @@ func (resource *ResourcesData) CreateApp(parsedArguments *arguments.ParserArgume
 	args := []string{"v3-create-app", parsedArguments.AppName}
 	err = resource.Executor.Execute(args)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not create app")
 	}
 	return nil
 }
@@ -27,7 +29,7 @@ func (resource *ResourcesData) PushApp(parsedArguments *arguments.ParserArgument
 
 	err = resource.Executor.Execute(args)
 	if err != nil {
-		return err
+		return errors.Wrap(err, fmt.Sprintf("could not push application with passed args: %v", args))
 	}
 
 	for _, env := range parsedArguments.Envs {

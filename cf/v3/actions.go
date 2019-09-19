@@ -1,7 +1,8 @@
 package v3
 
 import (
-	"github.com/happytobi/cf-puppeteer/ui"
+	"fmt"
+	"github.com/pkg/errors"
 )
 
 func (resource *ResourcesData) AssignAppManifest(manifestPath string) (err error) {
@@ -9,8 +10,7 @@ func (resource *ResourcesData) AssignAppManifest(manifestPath string) (err error
 
 	err = resource.Executor.Execute(args)
 	if err != nil {
-		ui.Failed("could not read manifest from path %s error: %s", manifestPath, err)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("error while assigning manifest to application %s", manifestPath))
 	}
 	return nil
 }

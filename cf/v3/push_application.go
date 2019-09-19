@@ -3,12 +3,14 @@ package v3
 import (
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/plugin"
+	"fmt"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
 )
 
 //Push interface with all v3 actions
@@ -52,7 +54,7 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 	if parsedArguments.NoRoute {
 		newManifestPath, err := resource.GenerateNoRouteYml(parsedArguments.AppName, parsedArguments.Manifest)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "could not generate a new temp manifest without routes")
 		}
 		ui.Say("use no route manifest")
 		manifestPath = newManifestPath
@@ -153,8 +155,7 @@ func (resource *ResourcesData) SetHealthCheck(appName string, healthCheckType st
 
 	err = resource.Executor.Execute(args)
 	if err != nil {
-		ui.Failed("could not set health check timeouts", err)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("could not set healthcheck with type: %s - endpoint: %s - invocationTimeout %d", healthCheckType, healthCheckHTTPEndpoint, invocationTimeout))
 	}
 	return nil
 }
