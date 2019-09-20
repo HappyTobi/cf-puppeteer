@@ -32,12 +32,12 @@ func (resource *ResourcesData) PushApp(parsedArguments *arguments.ParserArgument
 		return errors.Wrap(err, fmt.Sprintf("could not push application with passed args: %v", args))
 	}
 
-	for _, env := range parsedArguments.Envs {
-		ui.Say("set environment-variable")
-		args = []string{"v3-set-env", parsedArguments.AppName, env}
+	for envKey, envVal := range parsedArguments.Envs {
+		ui.Say(fmt.Sprintf("set environment-variable %s", envKey))
+		args = []string{"v3-set-env", parsedArguments.AppName, envKey, envVal}
 		err = resource.Executor.Execute(args)
 		if err != nil {
-			ui.Failed("could not set environment variable %s to application %s", env, parsedArguments.AppName)
+			ui.Failed("could not set environment variable with key: %s to application: %s", envKey, parsedArguments.AppName)
 		}
 	}
 

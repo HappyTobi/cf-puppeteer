@@ -1,4 +1,4 @@
-package print
+package env
 
 import (
 	"encoding/csv"
@@ -23,6 +23,11 @@ func Convert(envVars []string) (conVars map[string]string) {
 		if len(fields) > 1 {
 			envKey := strings.TrimSpace(fields[0])
 			envVal := strings.TrimSpace(fields[1])
+			if len(fields) > 2 {
+				//only possible is value contains "=" sign so we have to join them together again
+				envVal = strings.Join(fields[1:], "=")
+			}
+
 			envs[envKey] = envVal
 		}
 	}

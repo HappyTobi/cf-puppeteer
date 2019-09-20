@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/happytobi/cf-puppeteer/cf/utils/env"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"regexp"
@@ -23,13 +24,12 @@ type ParserArguments struct {
 	StackName               string
 	VendorAppOption         string
 	VenerableAction         string
-	Envs                    []string
+	Envs                    map[string]string
 	ShowLogs                bool
 	ShowCrashLogs           bool
 	DockerImage             string
 	DockerUserName          string
 	Manifest                manifest.Manifest
-	MergedEnvs              []string
 	LegacyPush              bool
 	NoRoute                 bool
 	AddRoutes               bool
@@ -55,7 +55,7 @@ var (
 	//ErrWrongEnvFormat error when env files was not in right format
 	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
 	//ErrWrongCombination error when legacy push is used with health check options
-	ErrWrongCombination = errors.New("--legacy-push and health check options coiuldn't be combined")
+	ErrWrongCombination = errors.New("--legacy-push and health check options couldn't be combined")
 )
 
 // ParseArgs parses the command line arguments
@@ -160,17 +160,9 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 				return pta, ErrWrongEnvFormat
 			}
 		}
+		//convert variables to use them later in set-ent
+		pta.Envs = env.Convert(envs)
 	}
-
-	pta.Envs = envs
-
-	//Merge all environment variables together
-	var mergedEnvs []string
-	mergedEnvs = append(mergedEnvs, pta.Envs...)
-	for k, v := range pta.Manifest.ApplicationManifests[0].Env {
-		mergedEnvs = append(mergedEnvs, fmt.Sprintf("%s %s", k, v))
-	}
-	pta.MergedEnvs = mergedEnvs
 
 	//print waring for deprecated arguments
 	if strings.ToLower(pta.VendorAppOption) != "delete" {
