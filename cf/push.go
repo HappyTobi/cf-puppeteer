@@ -50,7 +50,8 @@ func (adp *ApplicationPushData) PushApplication(venAppName, spaceGUID string, pa
 		var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
 		var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
 		if parsedArguments.AddRoutes {
-			return push.SwitchRoutesOnly(venAppName, parsedArguments.AppName, spaceGUID, parsedArguments.Manifest.ApplicationManifests[0].Routes, v2Resources)
+			//TODO loop over applications
+			return push.SwitchRoutesOnly(venAppName, parsedArguments.AppName, parsedArguments.Manifest.ApplicationManifests[0].Routes)
 		}
 		return push.PushApplication(venAppName, spaceGUID, parsedArguments, v2Resources)
 	}

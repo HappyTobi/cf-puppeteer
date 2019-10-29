@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"code.cloudfoundry.org/cli/plugin"
 	"crypto/tls"
-	print "github.com/happytobi/cf-puppeteer/cf/utils"
+	"github.com/happytobi/cf-puppeteer/cf/utils/print"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"io/ioutil"
 	"net"

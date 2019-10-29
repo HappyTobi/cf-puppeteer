@@ -1,10 +1,10 @@
 package cli
 
 import (
+	"github.com/happytobi/cf-puppeteer/cf/utils/print"
 	"strings"
 
 	"code.cloudfoundry.org/cli/plugin"
-	print "github.com/happytobi/cf-puppeteer/cf/utils"
 	"github.com/happytobi/cf-puppeteer/ui"
 )
 

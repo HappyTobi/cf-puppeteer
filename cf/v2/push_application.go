@@ -2,11 +2,12 @@ package v2
 
 import (
 	"code.cloudfoundry.org/cli/plugin"
+	"fmt"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	"github.com/happytobi/cf-puppeteer/ui"
+	"github.com/pkg/errors"
 	"strconv"
-	"strings"
 )
 
 //Push interface with all v3 actions
@@ -65,14 +66,13 @@ func (resource *LegacyResourcesData) setEnvironmentVariables(parsedArguments *ar
 	ui.Say("set passed environment variables")
 	varArgs := []string{"set-env", parsedArguments.AppName}
 	//set all variables passed by --var
-	for _, envPair := range parsedArguments.Envs {
-		tmpArgs := make([]string, len(varArgs))
+	for envKey, envVal := range parsedArguments.Envs {
+		tmpArgs := make([]string, len(parsedArguments.Envs))
 		copy(tmpArgs, varArgs)
-		newArgs := strings.Split(envPair, "=")
-		tmpArgs = append(tmpArgs, newArgs...)
+		tmpArgs = append(tmpArgs, fmt.Sprintf("%s %s", envKey, envVal))
 		err := resource.Executor.Execute(tmpArgs)
 		if err != nil {
-			return err
+			return errors.Wrap(err, fmt.Sprintf("could not set env-variable with key %s to application %s", envKey, parsedArguments.AppName))
 		}
 	}
 	ui.Ok()

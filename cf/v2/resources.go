@@ -6,10 +6,6 @@ import (
 )
 
 type Resources interface {
-	LoadAppRoutes(appGUID string) (*AppRoutesResponse, error)
-	CreateRoute(spaceGUID string, domainGUID string, host string) (*RouteResponse, error)
-	LoadSharedDomains(domainGUID string) (*SharedDomainResponse, error)
-	FindServiceInstances(serviceNames []string, spaceGUID string) ([]string, error)
 	GetAppMetadata(appName string) (*AppResourcesEntity, error)
 }
 

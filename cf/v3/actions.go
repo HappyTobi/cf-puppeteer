@@ -2,38 +2,15 @@ package v3
 
 import (
 	"fmt"
-	"github.com/happytobi/cf-puppeteer/ui"
-	"os"
+	"github.com/pkg/errors"
 )
 
-//AssignAppManifest assign an appManifest
-func (resource *ResourcesData) AssignAppManifest(appLink string, manifestPath string) error {
-	path := fmt.Sprintf(`%s/actions/apply_manifest`, appLink)
+func (resource *ResourcesData) AssignAppManifest(manifestPath string) (err error) {
+	args := []string{"v3-apply-manifest", "-f", manifestPath}
 
-	file, err := os.Open(manifestPath)
+	err = resource.Executor.Execute(args)
 	if err != nil {
-		ui.Failed("could not read manifest from path %s error: %s", manifestPath, err)
-		panic(err)
+		return errors.Wrap(err, fmt.Sprintf("error while assigning manifest to application %s", manifestPath))
 	}
-	defer file.Close()
-
-	fileinfo, err := file.Stat()
-	if err != nil {
-		fmt.Printf("manifest file stat error %s", err)
-		return err
-	}
-
-	filesize := fileinfo.Size()
-	buffer := make([]byte, filesize)
-	file.Read(buffer)
-
-	ui.Say("start uploading manifest file")
-	_, err = resource.httpClient.PostJSON(path, buffer)
-	if err != nil {
-		return err
-	}
-
-	ui.Ok()
-
 	return nil
 }

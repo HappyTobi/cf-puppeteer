@@ -1,22 +1,10 @@
-package print
+package env
 
 import (
 	"encoding/csv"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"strings"
 )
-
-/*func Convert(envVars []string) (conVars map[string]string) {
-	envs := make(map[string]string)
-	for _, v := range envVars {
-		envPair := strings.Split(v, SplitChar)
-		envKey := strings.TrimSpace(envPair[0])
-		envVal := strings.TrimSpace(envPair[1])
-		envs[envKey] = envVal
-	}
-
-	return envs
-}*/
 
 func Convert(envVars []string) (conVars map[string]string) {
 	replacer := strings.NewReplacer("'", "\"", "`", "\"")
@@ -35,6 +23,11 @@ func Convert(envVars []string) (conVars map[string]string) {
 		if len(fields) > 1 {
 			envKey := strings.TrimSpace(fields[0])
 			envVal := strings.TrimSpace(fields[1])
+			if len(fields) > 2 {
+				//only possible is value contains "=" sign so we have to join them together again
+				envVal = strings.Join(fields[1:], "=")
+			}
+
 			envs[envKey] = envVal
 		}
 	}
