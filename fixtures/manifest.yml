@@ -8,6 +8,7 @@ applications:
     instances: 1
     health-check-type: http
     health-check-http-endpoint: /health
+    path: myJavaApp.jar
     timeout: 2
     routes:
       - route: route1

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - refactor environment parsing
 - clean code
+- timeout handling, now all timeout parameters also of multi-app manifests will be set correct
 
 ### Fixed
 

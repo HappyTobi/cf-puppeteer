@@ -13,7 +13,6 @@ import (
 
 //ParserArguments struct where all arguments will be parsed into
 type ParserArguments struct {
-	AppName                 string
 	ManifestPath            string
 	AppPath                 string
 	HealthCheckType         string
@@ -56,6 +55,8 @@ var (
 	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
 	//ErrWrongCombination error when legacy push is used with health check options
 	ErrWrongCombination = errors.New("--legacy-push and health check options couldn't be combined")
+	//ErrCantSetAppNameForMultiAppManifest throw error wenn appname was set and a multi app menifest was pushed
+	ErrCantSetAppNameForMultiAppManifest = errors.New("not possible pass a APP_NAME with a multi-app manifest")
 )
 
 // ParseArgs parses the command line arguments
@@ -68,7 +69,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.ManifestPath, "f", "", "path to an application manifest")
 	flags.StringVar(&pta.AppPath, "p", "", "path to application files")
 	flags.StringVar(&pta.StackName, "s", "", "name of the stack to use")
-	flags.StringVar(&pta.HealthCheckType, "health-check-type", "", "type of health check to perform")
+	flags.StringVar(&pta.HealthCheckType, "health-check-type", "port", "type of health check to perform")
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (defaults to 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
@@ -130,27 +131,17 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//parse first argument as appName
-	pta.AppName = args[1]
-	if noAppNameProvided {
-		pta.AppName = parsedManifest.ApplicationManifests[0].Name
+	if argumentStartIndex == 2 && len(parsedManifest.ApplicationManifests) <= 1 {
+		//TODO change to allow overwrite
+		parsedManifest.ApplicationManifests[0].Name = args[1]
+	} else if argumentStartIndex == 2 && len(parsedManifest.ApplicationManifests) > 1 {
+		return nil, ErrCantSetAppNameForMultiAppManifest
 	}
+
 
 	//check that health check works without legacy push only
 	if pta.LegacyPush && (pta.HealthCheckType != "" || pta.HealthCheckHTTPEndpoint != "") {
 		return nil, ErrWrongCombination
-	}
-
-	// get health check settings from manifest if nothing else was specified in the command line
-	if pta.HealthCheckType == "" {
-		if parsedManifest.ApplicationManifests[0].HealthCheckType == "" {
-			pta.HealthCheckType = "port"
-		} else {
-			pta.HealthCheckType = parsedManifest.ApplicationManifests[0].HealthCheckType
-		}
-
-	}
-	if pta.HealthCheckHTTPEndpoint == "" {
-		pta.HealthCheckHTTPEndpoint = parsedManifest.ApplicationManifests[0].HealthCheckHTTPEndpoint
 	}
 
 	//validate envs format

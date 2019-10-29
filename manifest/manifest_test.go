@@ -32,6 +32,7 @@ var _ = Describe("Parse Manifest", func() {
 		Expect(manifest.ApplicationManifests[0].Name).Should(Equal("myApp"))
 		Expect(manifest.ApplicationManifests[0].Services[0]).Should(Equal("service1"))
 		Expect(manifest.ApplicationManifests[0].Services[1]).Should(Equal("service2"))
+		Expect(manifest.ApplicationManifests[0].AppPath).Should(Equal("myJavaApp.jar"))
 	})
 	It("parses complete manifest with buildpack url", func() {
 		manifest, err := Parse("../fixtures/phpManifest.yml")

@@ -3,6 +3,7 @@ package cf
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/happytobi/cf-puppeteer/manifest"
 	"os"
 
 	"github.com/happytobi/cf-puppeteer/arguments"
@@ -23,7 +24,7 @@ type ApplicationPushData struct {
 
 //PuppeteerPush push application interface
 type PuppeteerPush interface {
-	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments) error
+	PushApplication(venAppName string, spaceGUID string, manifest manifest.Application, parsedArguments *arguments.ParserArguments) error
 }
 
 var cliCalls cli.Calls
@@ -39,7 +40,7 @@ func NewApplicationPush(conn plugin.CliConnection, traceLogging bool) *Applicati
 }
 
 //PushApplication push application to cf
-func (adp *ApplicationPushData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments) error {
+func (adp *ApplicationPushData) PushApplication(venAppName string, spaceGUID string, manifest manifest.Application, parsedArguments *arguments.ParserArguments) error {
 	v3Push, err := useV3Push()
 	if err != nil {
 		//fatal exit
@@ -51,9 +52,9 @@ func (adp *ApplicationPushData) PushApplication(venAppName, spaceGUID string, pa
 		var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
 		if parsedArguments.AddRoutes {
 			//TODO loop over applications
-			return push.SwitchRoutesOnly(venAppName, parsedArguments.AppName, parsedArguments.Manifest.ApplicationManifests[0].Routes)
+			return push.SwitchRoutesOnly(venAppName, manifest.Name, manifest.Routes)
 		}
-		return push.PushApplication(venAppName, spaceGUID, parsedArguments, v2Resources)
+		return push.PushApplication(venAppName, spaceGUID, manifest, parsedArguments, v2Resources)
 	}
 
 	var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)

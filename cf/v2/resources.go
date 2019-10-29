@@ -7,6 +7,12 @@ import (
 
 type Resources interface {
 	GetAppMetadata(appName string) (*AppResourcesEntity, error)
+	RenameApplication(oldName string, newName string) (err error)
+	StopApplication(appName string) (err error)
+	StartApplication(appName string) (err error)
+	DeleteApplication(appName string) (err error)
+	ShowCrashLogs(appName string) (err error)
+	ListApplications() (err error)
 }
 
 //ResourcesData internal struct with connection an tracing options etc

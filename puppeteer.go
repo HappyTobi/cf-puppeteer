@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/happytobi/cf-puppeteer/manifest"
 	"log"
 	"os"
 	"strings"
@@ -31,12 +32,9 @@ func main() {
 
 type CfPuppeteerPlugin struct{}
 
-func venerableAppName(appName string) string {
-	return fmt.Sprintf("%s-venerable", appName)
-}
-
-func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.ParserArguments) []rewind.Action {
-	venName := venerableAppName(parsedArguments.AppName)
+func getActionsForApp(appRepo *ApplicationRepo, manifest manifest.Application, parsedArguments *arguments.ParserArguments) []rewind.Action {
+	//run each block for one application in a go routine
+	venName := fmt.Sprintf("%s-venerable", manifest.Name)
 	var err error
 	var curApp, venApp *v2.AppResourcesEntity
 
@@ -44,7 +42,7 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// get info about current app
 		{
 			Forward: func() error {
-				curApp, err = appRepo.v2Resources.GetAppMetadata(parsedArguments.AppName)
+				curApp, err = appRepo.v2Resources.GetAppMetadata(manifest.Name)
 				if err != nil {
 					if err == v2.ErrAppNotFound {
 						curApp = nil
@@ -79,20 +77,20 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 
 				// If current app isn't started, then we'll just delete it, and we're done => only if route switching was not used
 				if curApp.Entity.State != "STARTED" && parsedArguments.AddRoutes == false {
-					return appRepo.DeleteApplication(parsedArguments.AppName)
+					return appRepo.v2Resources.DeleteApplication(manifest.Name)
 				}
 
 				// Do we have a ven app that will stop a rename? -> normal workflow only if we dont run the add routes mode
 				if venApp != nil && parsedArguments.AddRoutes == false {
 					// Finally, since the current app claims to be healthy, we'll delete the venerable app, and rename the current over the top
-					err = appRepo.DeleteApplication(venName)
+					err = appRepo.v2Resources.DeleteApplication(venName)
 					if err != nil {
 						return err
 					}
 				}
 
 				if parsedArguments.AddRoutes == false {
-					return appRepo.RenameApplication(parsedArguments.AppName, venName)
+					return appRepo.v2Resources.RenameApplication(manifest.Name, venName)
 				}
 				return nil
 			},
@@ -106,13 +104,13 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				}
 
 				var puppeteerPush cf.PuppeteerPush = cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
-				return puppeteerPush.PushApplication(venName, space.Guid, parsedArguments)
+				return puppeteerPush.PushApplication(venName, space.Guid, manifest, parsedArguments)
 			},
 			//When upload fails the new application will be deleted and ven app will be renamed
 			ReversePrevious: func() error {
 				ui.Failed("error while uploading / deploying the application... roll everything back")
-				_ = appRepo.DeleteApplication(parsedArguments.AppName)
-				return appRepo.RenameApplication(venName, parsedArguments.AppName)
+				_ = appRepo.v2Resources.DeleteApplication(manifest.Name)
+				return appRepo.v2Resources.RenameApplication(venName, manifest.Name)
 			},
 		},
 		// start
@@ -121,10 +119,10 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				if parsedArguments.ShowLogs {
 					ui.Say("show logs...")
 					// TODO not working anymore
-					_ = appRepo.ShowLogs(parsedArguments.AppName)
+					_ = appRepo.ShowLogs(manifest.Name)
 				}
 				if parsedArguments.NoStart == false {
-					return appRepo.StartApplication(parsedArguments.AppName)
+					return appRepo.v2Resources.StartApplication(manifest.Name)
 				}
 				return nil
 			},
@@ -132,14 +130,13 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				if parsedArguments.ShowCrashLogs {
 					//print logs before application delete
 					ui.Say("show crash logs")
-					_ = appRepo.ShowCrashLogs(parsedArguments.AppName)
+					_ = appRepo.v2Resources.ShowCrashLogs(manifest.Name)
 				}
 
 				// If the app cannot start we'll have a lingering application
 				// We delete this application so that the rename can succeed
-				_ = appRepo.DeleteApplication(parsedArguments.AppName)
-
-				return appRepo.RenameApplication(venName, parsedArguments.AppName)
+				_ = appRepo.v2Resources.DeleteApplication(manifest.Name)
+				return appRepo.v2Resources.RenameApplication(venName, manifest.Name)
 			},
 		},
 		// delete
@@ -147,9 +144,9 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 			Forward: func() error {
 				//if venerableAction was set to stop
 				if strings.ToLower(parsedArguments.VenerableAction) == "stop" {
-					return appRepo.StopApplication(venName)
+					return appRepo.v2Resources.StopApplication(venName)
 				} else if strings.ToLower(parsedArguments.VenerableAction) == "delete" {
-					return appRepo.DeleteApplication(venName)
+					return appRepo.v2Resources.DeleteApplication(venName)
 				}
 				//do nothing with the ven app
 				return nil
@@ -172,16 +169,19 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	parsedArguments, err := arguments.ParseArgs(args)
 	fatalIf(err)
 
-	fatalIf((&rewind.Actions{
-		Actions:              getActionsForApp(appRepo, parsedArguments),
-		RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
-	}).Execute())
+	//venNames := venerableAppNames(parsedArguments.Manifest.ApplicationManifests)
+	for _, application := range parsedArguments.Manifest.ApplicationManifests {
+		go fatalIf((&rewind.Actions{
+			Actions:              getActionsForApp(appRepo,application, parsedArguments),
+			RewindFailureMessage: "Oh no. Something's gone wrong. I've tried to roll back but you should check to see if everything is OK.",
+		}).Execute())
+	}
 
 	ui.Say("")
 	ui.Say("A new version of your application has successfully been pushed!")
 	ui.Say("")
 
-	_ = appRepo.ListApplications()
+	_ = appRepo.v2Resources.ListApplications()
 }
 
 // GetMetadata get plugin metadata
@@ -235,36 +235,6 @@ func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *Applicati
 		traceLogging: traceLogging,
 		v2Resources:  v2.NewV2Resources(conn, traceLogging),
 	}
-}
-
-func (repo *ApplicationRepo) RenameApplication(oldName, newName string) error {
-	_, err := repo.conn.CliCommand("rename", oldName, newName)
-	return err
-}
-
-func (repo *ApplicationRepo) StopApplication(appName string) error {
-	_, err := repo.conn.CliCommand("stop", appName)
-	return err
-}
-
-func (repo *ApplicationRepo) StartApplication(appName string) error {
-	_, err := repo.conn.CliCommand("start", appName)
-	return err
-}
-
-func (repo *ApplicationRepo) DeleteApplication(appName string) error {
-	_, err := repo.conn.CliCommand("delete", appName, "-f")
-	return err
-}
-
-func (repo *ApplicationRepo) ShowCrashLogs(appName string) error {
-	_, err := repo.conn.CliCommand("logs", "--recent", appName)
-	return err
-}
-
-func (repo *ApplicationRepo) ListApplications() error {
-	_, err := repo.conn.CliCommand("apps")
-	return err
 }
 
 func (repo *ApplicationRepo) ShowLogs(appName string) error {

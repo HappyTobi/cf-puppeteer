@@ -29,7 +29,7 @@ func NewV2LegacyPush(conn plugin.CliConnection, traceLogging bool) *LegacyResour
 
 func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments) error {
 	ui.Say("use legacy push")
-	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start"}
+	args := []string{"push", parsedArguments.Manifest.ApplicationManifests[0].Name, "-f", parsedArguments.ManifestPath, "--no-start"}
 	if parsedArguments.AppPath != "" {
 		args = append(args, "-p", parsedArguments.AppPath)
 	}
@@ -64,7 +64,7 @@ func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID strin
 
 func (resource *LegacyResourcesData) setEnvironmentVariables(parsedArguments *arguments.ParserArguments) (err error) {
 	ui.Say("set passed environment variables")
-	varArgs := []string{"set-env", parsedArguments.AppName}
+	varArgs := []string{"set-env", parsedArguments.Manifest.ApplicationManifests[0].Name}
 	//set all variables passed by --var
 	for envKey, envVal := range parsedArguments.Envs {
 		tmpArgs := make([]string, len(parsedArguments.Envs))
@@ -72,7 +72,7 @@ func (resource *LegacyResourcesData) setEnvironmentVariables(parsedArguments *ar
 		tmpArgs = append(tmpArgs, fmt.Sprintf("%s %s", envKey, envVal))
 		err := resource.Executor.Execute(tmpArgs)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("could not set env-variable with key %s to application %s", envKey, parsedArguments.AppName))
+			return errors.Wrap(err, fmt.Sprintf("could not set env-variable with key %s to application %s", envKey, parsedArguments.Manifest.ApplicationManifests[0].Name))
 		}
 	}
 	ui.Ok()

@@ -16,7 +16,7 @@ import (
 
 //Push interface with all v3 actions
 type Push interface {
-	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error
+	PushApplication(venAppName string, spaceGUID string, manifest manifest.Application, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error
 	SwitchRoutesOnly(venAppName string, appName string, routes []map[string]string) error
 }
 
@@ -42,10 +42,10 @@ func NewV3Push(conn plugin.CliConnection, traceLogging bool) *ResourcesData {
 }
 
 //PushApplication call all methods to push a complete application
-func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error {
+func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, manifest manifest.Application, parsedArguments *arguments.ParserArguments, v2Resources v2.Resources) error {
 
-	ui.Say("create application %s", parsedArguments.AppName)
-	err := resource.CreateApp(parsedArguments)
+	ui.Say("create application %s", manifest.Name)
+	err := resource.CreateApp(manifest.Name)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 	ui.Say("apply manifest file")
 	manifestPath := parsedArguments.ManifestPath
 	if parsedArguments.NoRoute {
-		newManifestPath, err := resource.GenerateNoRouteYml(parsedArguments.AppName, parsedArguments.Manifest)
+		newManifestPath, err := resource.GenerateNoRouteYml(manifest.Name, parsedArguments.Manifest)
 		if err != nil {
 			return errors.Wrap(err, "could not generate a new temp manifest without routes")
 		}
