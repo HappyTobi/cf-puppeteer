@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - log deployment time
 - sorted options´
 - refactor push - add rewind to all push things
+- add parallel push to multi manifest
 
 ## [1.1.2] - 2019-XX-XX
 
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - refactor environment parsing
 - clean code
+- documentation update
 
 ### Fixed
 
