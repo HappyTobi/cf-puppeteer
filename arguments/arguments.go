@@ -68,7 +68,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.ManifestPath, "f", "", "path to an application manifest")
 	flags.StringVar(&pta.AppPath, "p", "", "path to application files")
 	flags.StringVar(&pta.StackName, "s", "", "name of the stack to use")
-	flags.StringVar(&pta.HealthCheckType, "health-check-type", "", "type of health check to perform")
+	flags.StringVar(&pta.HealthCheckType, "health-check-type", "port", "type of health check to perform")
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (defaults to 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
