@@ -26,7 +26,7 @@ type ResourcesData struct {
 	Cli        cli.Calls
 	httpClient cli.HttpCalls
 	Connection plugin.CliConnection
-	Executor   cli.Executor
+	Executor   cli.CfExecutor
 }
 
 //NewV3Push constructor

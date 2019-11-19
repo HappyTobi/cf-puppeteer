@@ -7,9 +7,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-/* TODO add type to docker */
 func (resource *ResourcesData) CreateApp(parsedArguments *arguments.ParserArguments) (err error) {
 	args := []string{"v3-create-app", parsedArguments.AppName}
+
+	//check if user pushes a docker image
+	if len(parsedArguments.DockerImage) > 0 {
+		args = append(args, "--app-type", "docker")
+	}
+
 	err = resource.Executor.Execute(args)
 	if err != nil {
 		return errors.Wrap(err, "could not create app")
@@ -19,8 +24,15 @@ func (resource *ResourcesData) CreateApp(parsedArguments *arguments.ParserArgume
 
 func (resource *ResourcesData) PushApp(parsedArguments *arguments.ParserArguments) (err error) {
 	args := []string{"v3-push", parsedArguments.AppName, "--no-start"}
-	if parsedArguments.AppPath != "" {
+	if len(parsedArguments.AppPath) > 0 && len(parsedArguments.DockerImage) == 0 {
 		args = append(args, "-p", parsedArguments.AppPath)
+	}
+
+	if len(parsedArguments.DockerImage) > 0 {
+		args = append(args, "--docker-image", parsedArguments.DockerImage)
+		if len(parsedArguments.DockerUserName) > 0 {
+			args = append(args, "--docker-username", parsedArguments.DockerUserName)
+		}
 	}
 
 	if parsedArguments.NoRoute == true {

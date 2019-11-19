@@ -5,22 +5,22 @@ import (
 	"os/exec"
 )
 
-type Executor interface {
+type CfExecutor interface {
 	Execute(arguments []string) (err error)
 }
 
 //HttpConnection
-type executor struct {
+type Executor struct {
 	traceLogging bool
 }
 
-func NewExecutor(traceLogging bool) Executor {
-	return executor{
+func NewExecutor(traceLogging bool) CfExecutor {
+	return Executor{
 		traceLogging: traceLogging,
 	}
 }
 
-func (ec executor) Execute(arguments []string) (err error) {
+func (ec Executor) Execute(arguments []string) (err error) {
 	cfCmdToolPath, err := exec.LookPath("cf")
 	if err != nil {
 		return err
