@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - refactor environment parsing
 - clean code
 - documentation update
+- back port "--no-route" and "--route-only" option to "--legacy-push" (v2).
+- docker support was available again
+- vendor-option droped
 
 ### Fixed
 
