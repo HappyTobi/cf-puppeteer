@@ -24,6 +24,8 @@ var _ = Describe("Parse Manifest", func() {
 		Expect(manifest.ApplicationManifests[0].Buildpacks[0]).Should(Equal("java_buildpack"))
 		Expect(manifest.ApplicationManifests[0].Buildpacks[1]).Should(Equal("go_buildpack"))
 		Expect(manifest.ApplicationManifests[0].Timeout).Should(Equal(2))
+		Expect(manifest.ApplicationManifests[0].Routes[0]["route"]).Should(Equal("route1.external.test.com"))
+		Expect(manifest.ApplicationManifests[0].Routes[1]["route"]).Should(Equal("route2.internal.test.com"))
 	})
 
 	It("parses complete manifest with services", func() {

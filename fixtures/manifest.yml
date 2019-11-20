@@ -10,8 +10,8 @@ applications:
     health-check-http-endpoint: /health
     timeout: 2
     routes:
-      - route: route1
-      - route: route2
+      - route: route1.external.test.com
+      - route: route2.internal.test.com
     services:
       - service1
       - service2
