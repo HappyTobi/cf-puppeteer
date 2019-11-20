@@ -119,7 +119,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 
 	//check if a docker image shouldbe pushed and verify passed args combination
 	if len(pta.DockerUserName) > 0 && (len(dockerPass) == 0 || len(pta.DockerImage) == 0) {
-		return nil,ErrWrongPrivateDockerRepoCombination
+		return nil, ErrWrongPrivateDockerRepoCombination
 	}
 
 	//set timeout
@@ -137,7 +137,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//check that health check works without legacy push only
-	if pta.LegacyPush && (pta.HealthCheckType != "" || pta.HealthCheckHTTPEndpoint != "") {
+	if pta.LegacyPush && ((argPassed(flags, "health-check-type") && pta.HealthCheckType != "") || (argPassed(flags, "health-check-http-endpoint") && pta.HealthCheckHTTPEndpoint != "")) {
 		return nil, ErrWrongCombination
 	}
 
