@@ -57,6 +57,9 @@ func (adp *ApplicationPushData) PushApplication(venAppName, spaceGUID string, pa
 	}
 
 	var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)
+	if parsedArguments.AddRoutes {
+		return legacyPush.SwitchRoutesOnly(venAppName, parsedArguments.AppName, parsedArguments.Manifest.ApplicationManifests[0].Routes)
+	}
 	return legacyPush.PushApplication(venAppName, spaceGUID, parsedArguments)
 }
 
