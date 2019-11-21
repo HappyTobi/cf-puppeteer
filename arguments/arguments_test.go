@@ -142,7 +142,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal(map[string]string{"foo": "bar", "baz": "bob"}))
-		Expect(parsedArguments.VenerableAction).Should(Equal("delete"))
+		Expect(parsedArguments.VenerableAction).Should(Equal("none"))
 		Expect(parsedArguments.ShowLogs).To(Equal(true))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
@@ -223,13 +223,12 @@ var _ = Describe("Deprecated flag parsing", func() {
 				"appname",
 				"-f", "../fixtures/manifest.yml",
 				"-p", "app-path",
-				"--vendor-option", "stop",
+				"--venerable-action", "stop",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(arg.AppName).To(Equal("appname"))
 		Expect(arg.ManifestPath).To(Equal("../fixtures/manifest.yml"))
 		Expect(arg.VenerableAction).Should(Equal("stop"))
-		Expect(arg.VendorAppOption).Should(Equal("stop"))
 	})
 })

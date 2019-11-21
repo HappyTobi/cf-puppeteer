@@ -23,7 +23,7 @@ var _ = Describe("cf-domain test", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		resourcesData = &v3.ResourcesData{Connection: cliConn, Cli: cli.NewCli(cliConn, true)}
+		resourcesData = &v3.ResourcesData{Connection: cliConn, Cli: cli.NewCli(cliConn, false)}
 
 	})
 	Describe("Domain actions with curl v3 api", func() {
@@ -104,10 +104,10 @@ var _ = Describe("cf-domain test", func() {
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
 
 			Expect((*domainResponse)[0].Host).To(Equal("foo"))
-			Expect((*domainResponse)[0].DomainGUID).To(Equal("3a5d3d89-3f89-4f05-8188-8a2b298c79d7"))
+			Expect((*domainResponse)[0].Domain).To(Equal("example.com"))
 
 			Expect((*domainResponse)[1].Host).To(Equal("url"))
-			Expect((*domainResponse)[1].DomainGUID).To(Equal("3a5d3d89-3f89-4f05-8188-8a2b298c79d5"))
+			Expect((*domainResponse)[1].Domain).To(Equal("test-domain.com"))
 
 			Expect(err).ToNot(HaveOccurred())
 		})

@@ -4,26 +4,30 @@
 [![APACHE-2 License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/HappyTobi/cf-puppeteer/blob/master/LICENSE)
 [![Github All Releases](https://img.shields.io/github/downloads/HappyTobi/cf-puppeteer/total.svg)](https://github.com/HappyTobi/cf-puppeteer/releases)
 [![Github All Releases](https://img.shields.io/github/v/release/HappyTobi/cf-puppeteer?include_prereleases)](https://github.com/HappyTobi/cf-puppeteer/releases)
+[![Documentation](https://img.shields.io/badge/Documentation-visit-green)](https://cf-puppeteer.happytobi.com)
 
 *cf plugin for hands-off, zero downtime application deploys*
 
-## notice
+## Documentation / Website
+[CF-Puppeteer Website](https://cf-puppeteer.happytobi.com).
+
+### Notice
 
 This project was forked from [contraband](https://github.com/contraband/autopilot).
 
 It was renamed to *cf-puppeteer* and is being further developed under the new name.
 
-# changelog
+# Changelog
 
 To get an overview of the changes between versions, read the [changelog](CHANGELOG.md).
 
-## version
+## Version
 
 The latest version of *CF-Puppeteer* is *1.1.2*. It works with and is based on Cloud Foundry CLI version 6.43.0.
 
 For more details on the most recent release, check out the [changelog](CHANGELOG.md).
 
-## cf installation
+## Cf installation
 
 Download the latest version from the [releases][releases] page and make it executable.
 
@@ -33,7 +37,7 @@ $ cf install-plugin path/to/downloaded/binary
 
 [releases]: https://github.com/happytobi/cf-puppeteer/releases
 
-## usage
+## Usage
 
 ```
 $ cf zero-downtime-push \
@@ -44,7 +48,7 @@ $ cf zero-downtime-push \
 
 To get more information go to [CF-Puppeteer homepage](https://cf-puppeteer.happytobi.com/)
 
-### passing an application name
+### Passing an application name
 
 To override the application name from the manifest, specify it as command line argument. For example:
 
@@ -55,7 +59,7 @@ $ cf zero-downtime-push application-to-replace \
     -t 120
 ```
 
-### changing the health check settings
+### Changing the health check settings
 
 To have more control over the health checks of your application, *CF-Puppeteer* supports additional parameters. For example:
 
@@ -71,7 +75,7 @@ $ cf zero-downtime-push application-to-replace \
 
 While *CF-Puppeteer* gives precedence to command line parameters, you can also specify `health-check-type` and `health-check-http-endpoint` in the application manifest. However, Cloud Foundry currently does not support `invocation-timeout` in application manifests. Therefore, if you want to set it, always use the command line.
 
-## method
+## Method
 
 *CF-Puppeteer* takes a different approach compared to other zero-downtime plugins. It
 does not perform any [complex route re-mappings][indiana-jones]. Instead it uses the manifest feature of the Cloud Foundry CLI. The method also has the advantage of treating a manifest as the source of truth and will converge the
@@ -90,5 +94,5 @@ delivery environments.
 
 [indiana-jones]: https://www.youtube.com/watch?v=0gU35Tgtlmg
 
-## local development
+## Local development
 for local development you need to install [govendor](https://github.com/kardianos/govendor)

@@ -100,13 +100,13 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		// push
 		{
 			Forward: func() error {
+				venAppExists := venApp != nil
 				space, err := appRepo.conn.GetCurrentSpace()
 				if err != nil {
 					return err
 				}
-
 				var puppeteerPush cf.PuppeteerPush = cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
-				return puppeteerPush.PushApplication(venName, space.Guid, parsedArguments)
+				return puppeteerPush.PushApplication(venName, venAppExists, space.Guid, parsedArguments)
 			},
 			//When upload fails the new application will be deleted and ven app will be renamed
 			ReversePrevious: func() error {
@@ -146,9 +146,9 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 		{
 			Forward: func() error {
 				//if venerableAction was set to stop
-				if strings.ToLower(parsedArguments.VenerableAction) == "stop" {
+				if strings.ToLower(parsedArguments.VenerableAction) == "stop" && venApp != nil {
 					return appRepo.StopApplication(venName)
-				} else if strings.ToLower(parsedArguments.VenerableAction) == "delete" {
+				} else if strings.ToLower(parsedArguments.VenerableAction) == "delete" && venApp != nil {
 					return appRepo.DeleteApplication(venName)
 				}
 				//do nothing with the ven app
@@ -211,11 +211,13 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",
 						"-show-crash-log":             "Show recent logs when applications crashes while the deployment",
 						//"-show-app-log": "tail and show application log during application start",
-						"-process":     "application process to update",
-						"-legacy-push": "use legacy push instead of new v3 api",
-						"-no-route":    "deploy new application without adding routes",
-						"-route-only":  "only add routes from manifest to application",
-						"-no-start":    "don't start application after deployment",
+						"-process":         "use health check type process",
+						"-legacy-push":     "use legacy push instead of new v3 api",
+						"-no-route":        "deploy new application without adding routes",
+						"-route-only":      "only add routes from manifest to application",
+						"-no-start":        "don't start application after deployment; venerable action will none",
+						"-docker-image":    "docker image url",
+						"-docker-username": "docker repository username; used with password from env CF_DOCKER_PASSWORD",
 					},
 				},
 			},

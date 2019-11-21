@@ -54,10 +54,6 @@ type DomainResponse struct {
 func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes, error) {
 	path := fmt.Sprintf(`/v3/domains`)
 
-	/*if resource.TraceLogging {
-		fmt.Printf("call api %s and search for domain name: %s", path, domains)
-	}*/
-
 	response, err := resource.getDomain(path)
 	if err != nil {
 		return nil, err

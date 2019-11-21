@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/happytobi/cf-puppeteer/cf/utils/env"
 	"github.com/happytobi/cf-puppeteer/manifest"
-	"github.com/happytobi/cf-puppeteer/ui"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -22,7 +22,6 @@ type ParserArguments struct {
 	InvocationTimeout       int
 	Process                 string
 	StackName               string
-	VendorAppOption         string
 	VenerableAction         string
 	Envs                    map[string]string
 	ShowLogs                bool
@@ -56,6 +55,8 @@ var (
 	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
 	//ErrWrongCombination error when legacy push is used with health check options
 	ErrWrongCombination = errors.New("--legacy-push and health check options couldn't be combined")
+	//ErrWrongDockerCombination error when private docker image repo will be pushed without a pass
+	ErrWrongPrivateDockerRepoCombination = errors.New("--docker-username have to be used in combination with env CF_DOCKER_PASSWORD and --docker-image")
 )
 
 // ParseArgs parses the command line arguments
@@ -72,20 +73,19 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
 	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (defaults to 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
-	flags.StringVar(&pta.Process, "process", "", "application process to update")
+	flags.StringVar(&pta.Process, "process", "", "use health check type process")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.BoolVar(&pta.ShowCrashLogs, "show-crash-log", false, "Show recent logs when applications crashes while the deployment")
-	flags.StringVar(&pta.VendorAppOption, "vendor-option", "delete", "option to delete,stop,none application action on vendor app- default is delete")
 	flags.StringVar(&pta.VenerableAction, "venerable-action", "delete", "option to delete,stop,none application action on vendor app- default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
 	flags.BoolVar(&pta.LegacyPush, "legacy-push", false, "use legacy push instead of new v3 api")
 	flags.BoolVar(&pta.NoRoute, "no-route", false, "deploy new application without adding routes")
 	flags.BoolVar(&pta.AddRoutes, "route-only", false, "only add routes from manifest to the application")
-	flags.BoolVar(&pta.NoStart, "no-start", false, "don't start application after deployment")
+	flags.BoolVar(&pta.NoStart, "no-start", false, "don't start application after deployment; venerable action is none")
 	//flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
-	//flags.StringVar(&pta.DockerImage, "docker-image", "", "url to docker image")
-	//flags.StringVar(&pta.DockerUserName, "docker-username", "", "pass docker username if image came from private repository")
-	//dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
+	flags.StringVar(&pta.DockerImage, "docker-image", "", "docker image url")
+	flags.StringVar(&pta.DockerUserName, "docker-username", "", "docker repository username; used with password from env CF_DOCKER_PASSWORD")
+	dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
 
 	//first check if argument was passed
 	if len(args) < 2 {
@@ -117,9 +117,10 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 	pta.Manifest = parsedManifest
 
-	/*if *dockerImage != "" && *dockerUserName != "" && dockerPass != "" {
-	    //TODO use dockerImage stuff and pass to push command
-	}*/
+	//check if a docker image shouldbe pushed and verify passed args combination
+	if len(pta.DockerUserName) > 0 && (len(dockerPass) == 0 || len(pta.DockerImage) == 0) {
+		return nil, ErrWrongPrivateDockerRepoCombination
+	}
 
 	//set timeout
 	manifestTimeout := parsedManifest.ApplicationManifests[0].Timeout
@@ -136,12 +137,12 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//check that health check works without legacy push only
-	if pta.LegacyPush && (pta.HealthCheckType != "" || pta.HealthCheckHTTPEndpoint != "") {
+	if pta.LegacyPush && ((argPassed(flags, "health-check-type") && pta.HealthCheckType != "") || (argPassed(flags, "health-check-http-endpoint") && pta.HealthCheckHTTPEndpoint != "")) {
 		return nil, ErrWrongCombination
 	}
 
 	// get health check settings from manifest if nothing else was specified in the command line
-	if pta.HealthCheckType == "" {
+	if argPassed(flags, "health-check-type") == false {
 		if parsedManifest.ApplicationManifests[0].HealthCheckType == "" {
 			pta.HealthCheckType = "port"
 		} else {
@@ -164,14 +165,8 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 		pta.Envs = env.Convert(envs)
 	}
 
-	//print waring for deprecated arguments
-	if strings.ToLower(pta.VendorAppOption) != "delete" {
-		ui.Warn("deprecated argument used, please use --venerable-action instead - argument will dropped in next version")
-		pta.VenerableAction = pta.VendorAppOption
-	}
-
 	//no-route set venerable-action to delete as default - but can be overwritten
-	if pta.NoRoute && argPassed(flags, "venerable-action") == false {
+	if (pta.NoRoute || pta.NoStart) && argPassed(flags, "venerable-action") == false {
 		pta.VenerableAction = "none"
 	}
 
