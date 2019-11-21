@@ -81,7 +81,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.BoolVar(&pta.LegacyPush, "legacy-push", false, "use legacy push instead of new v3 api")
 	flags.BoolVar(&pta.NoRoute, "no-route", false, "deploy new application without adding routes")
 	flags.BoolVar(&pta.AddRoutes, "route-only", false, "only add routes from manifest to the application")
-	flags.BoolVar(&pta.NoStart, "no-start", false, "don't start application after deployment")
+	flags.BoolVar(&pta.NoStart, "no-start", false, "don't start application after deployment; venerable action is none")
 	//flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.StringVar(&pta.DockerImage, "docker-image", "", "docker image url")
 	flags.StringVar(&pta.DockerUserName, "docker-username", "", "docker repository username; used with password from env CF_DOCKER_PASSWORD")
@@ -142,7 +142,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	// get health check settings from manifest if nothing else was specified in the command line
-	if pta.HealthCheckType == "" {
+	if argPassed(flags, "health-check-type") == false {
 		if parsedManifest.ApplicationManifests[0].HealthCheckType == "" {
 			pta.HealthCheckType = "port"
 		} else {
@@ -166,7 +166,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//no-route set venerable-action to delete as default - but can be overwritten
-	if pta.NoRoute && argPassed(flags, "venerable-action") == false {
+	if (pta.NoRoute || pta.NoStart) && argPassed(flags, "venerable-action") == false {
 		pta.VenerableAction = "none"
 	}
 
