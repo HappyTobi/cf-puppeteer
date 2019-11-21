@@ -26,7 +26,7 @@ var _ = Describe("cf-app test", func() {
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
 		fakeExecutor = &cli.FakeExecutor{}
-		resourcesData = &v3.ResourcesData{Connection: cliConn, Cli: cli.NewCli(cliConn, true), Executor: fakeExecutor.NewFakeExecutor()}
+		resourcesData = &v3.ResourcesData{Connection: cliConn, Cli: cli.NewCli(cliConn, false), Executor: fakeExecutor.NewFakeExecutor()}
 	})
 
 	Describe("CreateApp v3", func() {

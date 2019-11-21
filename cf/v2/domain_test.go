@@ -22,7 +22,7 @@ var _ = Describe("cf-domain test", func() {
 
 	BeforeEach(func() {
 		cliConn = &pluginfakes.FakeCliConnection{}
-		resourcesData = v2.NewV2LegacyPush(cliConn, true)
+		resourcesData = v2.NewV2LegacyPush(cliConn, false)
 	})
 	Describe("Domain actions with curl v2 api", func() {
 		It("use v2 domain api", func() {
@@ -73,25 +73,42 @@ var _ = Describe("cf-domain test", func() {
 						"router_group_guid": null,
 						"router_group_type": null
 					 }
+				  },
+				  {
+					 "metadata": {
+						"guid": "aa23b15e-dc54-437e-a651-a29415b66d9m",
+						"url": "/v2/shared_domains/aa23b15e-dc54-437e-a651-a29415b66d9m",
+						"created_at": "2016-10-20T07:40:24Z",
+						"updated_at": "2018-02-09T06:19:46Z"
+					 },
+					 "entity": {
+						"name": "internal.emea.github.com",
+						"internal": false,
+						"router_group_guid": null,
+						"router_group_type": null
+					 }
 				  }
 				]}
 			`}
 
 			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
 
-			var routes = []map[string]string{0: {"key": "route", "value": "url.test-domain.com"}, 1: {"key": "route", "value": "foo.example.com"},2: {"key":"route", "value":"my.foo.example.com"}}
+			var routes = []map[string]string{0: {"route": "url.test-domain.com"}, 1: {"route": "foo.example.com"}, 2: {"route": "my.foo.example.com"}, 3: {"route": "puppeteer.internal.emea.github.com"}}
 			domainResponse, err := resourcesData.GetDomain(routes)
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
 
-			Expect((*domainResponse)[2].Host).To(Equal("url"))
-			Expect((*domainResponse)[2].Domain).To(Equal("test-domain.com"))
+			checkMap := make(map[string]string,len(*domainResponse))
+			for _, value := range (*domainResponse) {
+				checkMap[value.Host] = value.Domain
+			}
 
-			Expect((*domainResponse)[0].Host).To(Equal("foo"))
-			Expect((*domainResponse)[0].Domain).To(Equal("example.com"))
 
-			Expect((*domainResponse)[1].Host).To(Equal("my"))
-			Expect((*domainResponse)[1].Domain).To(Equal("foo.example.com"))
+			Expect(checkMap["foo"]).To(Equal("example.com"))
+			Expect(checkMap["my"]).To(Equal("foo.example.com"))
+			Expect(checkMap["puppeteer"]).To(Equal("internal.emea.github.com"))
+			Expect(checkMap["url"]).To(Equal("test-domain.com"))
+
 
 			Expect(err).ToNot(HaveOccurred())
 		})
