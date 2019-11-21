@@ -13,7 +13,7 @@ import (
 //Push interface with all v3 actions
 type Push interface {
 	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments) error
-	SwitchRoutesOnly(venAppName string, appName string, routes []map[string]string) error
+	SwitchRoutesOnly(venAppName string, venAppExists bool, appName string, routes []map[string]string) error
 }
 
 //ResourcesData internal struct with connection an tracing options etc
@@ -71,7 +71,7 @@ func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID strin
 }
 
 //SwitchRoutes switch route interface method to provide switch routes only option
-func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string, appName string, routes []map[string]string) (err error) {
+func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string,venAppExists bool, appName string, routes []map[string]string) (err error) {
 	domains, err := resource.GetDomain(routes)
 	if err != nil {
 		return err
@@ -86,12 +86,14 @@ func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string, appName
 		}
 	}
 
-	ui.Say("remove routes from venerable application %s", venAppName)
-	for _, route := range *domains {
-		err = resource.UnMapRoute(venAppName, route.Host, route.Domain)
-		if err != nil {
-			//loop through
-			ui.Warn("could not remove route %s.%s from application", route.Host, route.Domain, venAppName)
+	if venAppExists {
+		ui.Say("remove routes from venerable application %s", venAppName)
+		for _, route := range *domains {
+			err = resource.UnMapRoute(venAppName, route.Host, route.Domain)
+			if err != nil {
+				//loop through
+				ui.Warn("could not remove route %s.%s from application", route.Host, route.Domain, venAppName)
+			}
 		}
 	}
 

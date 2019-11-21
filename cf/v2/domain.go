@@ -33,6 +33,7 @@ type DomainResponse struct {
 }
 
 func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]Routes, error) {
+	//default order asc.
 	path := fmt.Sprintf(`/v2/domains`)
 
 	response, err := resource.getDomain(path)
@@ -41,12 +42,17 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 	}
 
 	domainGUID := make(map[string]Routes)
-
 	for _, domainRes := range response.Resources {
 		for _, routes := range domains {
-			_, exists := domainGUID[domainRes.Metadata.GUID]
-			domain := routes["value"]
+			domain := routes["route"]
 			hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
+
+			_, exists := domainGUID[domain]
+			if exists {
+				exists = len(domainGUID[domain].Host) < len(hostName)
+			}
+
+			//question ist when route matches 2 time what kind of your we are using?
 			if strings.Contains(domain, domainRes.Entity.Name) && len(hostName) > 0 && !exists {
 				hostName = strings.TrimRight(hostName, ".")
 				newRoute := &Routes{
@@ -58,6 +64,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 		}
 	}
 
+	//move to func and all recursive
 	for response.Pagination.NextUrl != "" && len(domainGUID) <= 0 {
 		response, err := resource.getDomain(response.Pagination.NextUrl)
 		if err != nil {
