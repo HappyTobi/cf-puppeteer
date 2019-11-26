@@ -1,0 +1,10 @@
+---
+applications:
+  - name: myApp
+    memory: 128M
+    buildpacks:
+      - java_buildpack
+    instances: 1
+    routes:
+      - route: route1.external.test.com
+    path: myfolder/file-*.zip

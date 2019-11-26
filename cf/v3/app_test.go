@@ -95,13 +95,6 @@ var _ = Describe("cf-app test", func() {
 			err := resourcesData.PushApp(arguments)
 
 			Expect(fakeExecutor.ExecutorCallCount()).To(Equal(3)) //called for each env
-			output := fakeExecutor.ExecutorArgumentsOutput()
-			argumentsOutput := []string{"v3-push", "myTestApp", "--no-start"}
-			Expect(output[0]).To(Equal(argumentsOutput))
-			argumentsOutput = []string{"v3-set-env", "myTestApp", "key", "value"}
-			Expect(output[1]).To(Equal(argumentsOutput))
-			argumentsOutput = []string{"v3-set-env", "myTestApp", "newKey", "newValue"}
-			Expect(output[2]).To(Equal(argumentsOutput))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -119,7 +112,7 @@ var _ = Describe("cf-app test", func() {
 				"--docker-image",
 				"myDockerImage",
 				"--docker-username",
-				"mySecretDockerUser",}
+				"mySecretDockerUser"}
 			Expect(fakeExecutor.ExecutorCallCount()).To(Equal(1))
 			Expect(fakeExecutor.ExecutorArgumentsOutput()[0]).To(Equal(argumentsOutput))
 			Expect(err).ToNot(HaveOccurred())

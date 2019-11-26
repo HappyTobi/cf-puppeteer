@@ -21,6 +21,7 @@ type Application struct {
 	Env                     map[string]string   `yaml:"env,omitempty"`
 	Services                []string            `yaml:"services,omitempty"`
 	Stack                   string              `yaml:"stack,omitempty"`
+	Path                    string              `yaml:"path,omitempty"`
 	Timeout                 int                 `yaml:"timeout,omitempty"`
 	HealthCheckType         string              `yaml:"health-check-type,omitempty"`
 	HealthCheckHTTPEndpoint string              `yaml:"health-check-http-endpoint,omitempty"`

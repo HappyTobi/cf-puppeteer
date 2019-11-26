@@ -50,13 +50,15 @@ var (
 	//ErrNoArgument error when zero-downtime-push without a argument called
 	ErrNoArgument = errors.New("no valid argument found, use --help / -h for more information")
 	//ErrNoManifest error when manifes on push application was not found
-	ErrNoManifest = errors.New("a manifest is required to push this application")
+	ErrNoManifest = errors.New("a application manifest is required to push an application")
 	//ErrWrongEnvFormat error when env files was not in right format
-	ErrWrongEnvFormat = errors.New("--var would be in wrong format, use the vars like key=value")
+	ErrWrongEnvFormat = errors.New("environment variables passed in wrong format, pass the variables like key=value")
 	//ErrWrongCombination error when legacy push is used with health check options
 	ErrWrongCombination = errors.New("--legacy-push and health check options couldn't be combined")
 	//ErrWrongDockerCombination error when private docker image repo will be pushed without a pass
 	ErrWrongPrivateDockerRepoCombination = errors.New("--docker-username have to be used in combination with env CF_DOCKER_PASSWORD and --docker-image")
+	//Error manifest error when a wildcard was in the path directive
+	ErrNoWildcardSupport = errors.New("wildcard expressions within the path directive in the application manifest are not supported - delete this path directive and pass the artifact path by using the -p option")
 )
 
 // ParseArgs parses the command line arguments
@@ -76,7 +78,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.Process, "process", "", "use health check type process")
 	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.BoolVar(&pta.ShowCrashLogs, "show-crash-log", false, "Show recent logs when applications crashes while the deployment")
-	flags.StringVar(&pta.VenerableAction, "venerable-action", "delete", "option to delete,stop,none application action on vendor app- default is delete")
+	flags.StringVar(&pta.VenerableAction, "venerable-action", "delete", "option to delete,stop,none application action on venerable app default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
 	flags.BoolVar(&pta.LegacyPush, "legacy-push", false, "use legacy push instead of new v3 api")
 	flags.BoolVar(&pta.NoRoute, "no-route", false, "deploy new application without adding routes")
@@ -115,6 +117,11 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	if err != nil {
 		return pta, err //ErrManifest
 	}
+
+	if strings.ContainsAny(parsedManifest.ApplicationManifests[0].Path, "*") && pta.LegacyPush == false {
+		return pta, ErrNoWildcardSupport
+	}
+
 	pta.Manifest = parsedManifest
 
 	//check if a docker image shouldbe pushed and verify passed args combination

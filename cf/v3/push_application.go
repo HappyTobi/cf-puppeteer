@@ -107,7 +107,7 @@ func (resource *ResourcesData) GenerateNoRouteYml(appName string, originalManife
 	return manifestPathTemp, nil
 }
 
-//SwitchRoutes add new routes and switch "old" one from vendor app to the one
+//SwitchRoutes add new routes and switch "old" one from venerable app to the one
 func (resource *ResourcesData) SwitchRoutes(venAppName string, appName string, routes []map[string]string) (err error) {
 	domains, err := resource.GetDomain(routes)
 	if err != nil {

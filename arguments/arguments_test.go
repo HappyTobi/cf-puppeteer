@@ -52,6 +52,33 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.NoRoute).To(Equal(false))
 	})
 
+	It("parses a all args without venerable action", func() {
+		parsedArguments, err := ParseArgs(
+			[]string{
+				"zero-downtime-push",
+				"appname",
+				"-f", "../fixtures/manifest.yml",
+				"-p", "app-path",
+				"-s", "stack-name",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(parsedArguments.AppName).To(Equal("appname"))
+		Expect(parsedArguments.ManifestPath).To(Equal("../fixtures/manifest.yml"))
+		Expect(parsedArguments.AppPath).To(Equal("app-path"))
+		Expect(parsedArguments.StackName).To(Equal("stack-name"))
+		Expect(parsedArguments.VenerableAction).Should(Equal("delete"))
+		Expect(parsedArguments.ShowLogs).To(Equal(false))
+		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
+		Expect(parsedArguments.NoRoute).To(Equal(false))
+		Expect(parsedArguments.Timeout).To(Equal(2))
+		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
+		Expect(parsedArguments.Process).To(Equal(""))
+		Expect(parsedArguments.HealthCheckType).To(Equal("http"))
+		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/health"))
+	})
+
 	It("parses a all args without timeout", func() {
 		parsedArguments, err := ParseArgs(
 			[]string{
@@ -211,7 +238,6 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.NoRoute).Should(Equal(true))
 		Expect(parsedArguments.VenerableAction).Should(Equal("none"))
 	})
-
 })
 
 var _ = Describe("Deprecated flag parsing", func() {
@@ -230,5 +256,28 @@ var _ = Describe("Deprecated flag parsing", func() {
 		Expect(arg.AppName).To(Equal("appname"))
 		Expect(arg.ManifestPath).To(Equal("../fixtures/manifest.yml"))
 		Expect(arg.VenerableAction).Should(Equal("stop"))
+	})
+
+	It("manifest path with wildcard in path test", func() {
+		_, err := ParseArgs(
+			[]string{
+				"zero-downtime-push",
+				"appname",
+				"-f", "../fixtures/manifestWildcard.yml",
+			},
+		)
+		Expect(err).To(MatchError(ErrNoWildcardSupport))
+	})
+
+	It("manifest path without wildcard in path test", func() {
+		arg, err := ParseArgs(
+			[]string{
+				"zero-downtime-push",
+				"appname",
+				"-f", "../fixtures/manifest.yml",
+			},
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(arg.Manifest.ApplicationManifests[0].Path).To(Equal(""))
 	})
 })

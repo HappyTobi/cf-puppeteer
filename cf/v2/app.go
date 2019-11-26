@@ -99,6 +99,7 @@ func (resource *ResourcesData) GetAppMetadata(appName string) (*AppResourcesEnti
 	}
 
 	if len(metaDataResponseEntity.AppResourcesEntity) == 0 {
+		ui.Warn("No venerable application found")
 		return nil, ErrAppNotFound
 	}
 
