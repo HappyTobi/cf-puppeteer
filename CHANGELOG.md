@@ -9,11 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - add argument to cleanup unused environment variables
 - log deployment time
-- sorted options´
 - refactor push - add rewind to all push things
 - add parallel push to multi manifest
+- multi manifest pushed in parallel
 
-## [1.1.2] - 2019-XX-XX
+- multi manifest works correct.
+
+## [1.1.3] - 2019-11-26 
+
+### Changed
+- add more logging
+- add error message for manifest path declarative (when the path contains a wildcard)
+
+### Fixed
+- venerable application will be deleted correct
+- typos, update error messages 
+
+## [1.1.2] - 2019-11-21
 
 ### Changed
 
@@ -23,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - back port "--no-route" and "--route-only" option to "--legacy-push" (v2).
 - docker support was available again
 - vendor-option droped
+- options was sorted right now (go 1.12)
 
 ### Fixed
 

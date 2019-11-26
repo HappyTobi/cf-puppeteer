@@ -142,6 +142,20 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				return appRepo.RenameApplication(venName, parsedArguments.AppName)
 			},
 		},
+		//check vor venerable application again -> because venerable action was set correct and ven app could exist now.
+		{
+			Forward: func() error {
+				venApp, err = appRepo.v2Resources.GetAppMetadata(venName)
+				if err != nil {
+					if err == v2.ErrAppNotFound {
+						venApp = nil
+					} else {
+						return err
+					}
+				}
+				return nil
+			},
+		},
 		// delete
 		{
 			Forward: func() error {
@@ -191,7 +205,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 1,
-			Build: 2,
+			Build: 3,
 		},
 		Commands: []plugin.Command{
 			{

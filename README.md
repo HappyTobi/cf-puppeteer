@@ -96,3 +96,10 @@ delivery environments.
 
 ## Local development
 for local development you need to install [govendor](https://github.com/kardianos/govendor)
+
+## Known issues
+You can't push an Application-Manifest with a wildcard in tha `path` deceleration.
+That only works with the option `--legacy-push`
+
+To fix that issue, please remove the `path` from your manifest and pass the Artifact / Folder with the `-p` option.
+ 
