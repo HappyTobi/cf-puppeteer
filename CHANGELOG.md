@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - multi manifest works correct.
 
+## [1.2.0] - XXXX-XX-XX
+
+### Changed
+- move all v2 operations into the v2 package
+
+
 ## [1.1.3] - 2019-11-26 
 
 ### Changed
