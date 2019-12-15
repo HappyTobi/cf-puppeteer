@@ -8,6 +8,7 @@ import (
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -33,6 +34,7 @@ type ParserArguments struct {
 	NoRoute                 bool
 	AddRoutes               bool
 	NoStart                 bool
+	VarsFile                string
 }
 
 type stringSlice []string
@@ -84,6 +86,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.BoolVar(&pta.NoRoute, "no-route", false, "deploy new application without adding routes")
 	flags.BoolVar(&pta.AddRoutes, "route-only", false, "only add routes from manifest to the application")
 	flags.BoolVar(&pta.NoStart, "no-start", false, "don't start application after deployment; venerable action is none")
+	flags.StringVar(&pta.VarsFile, "vars-file", "", "path to a variable substitution file for manifest")
 	//flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.StringVar(&pta.DockerImage, "docker-image", "", "docker image url")
 	flags.StringVar(&pta.DockerUserName, "docker-username", "", "docker repository username; used with password from env CF_DOCKER_PASSWORD")
@@ -113,7 +116,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//parse manifest
-	parsedManifest, err := manifest.Parse(pta.ManifestPath)
+	parsedManifest, err := manifest.ParseApplicationManifest(pta.ManifestPath, pta.VarsFile)
 	if err != nil {
 		return pta, err //ErrManifest
 	}
@@ -130,7 +133,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//set timeout
-	manifestTimeout := parsedManifest.ApplicationManifests[0].Timeout
+	manifestTimeout, _ := strconv.Atoi(parsedManifest.ApplicationManifests[0].Timeout)
 	if manifestTimeout > 0 && pta.Timeout <= 0 {
 		pta.Timeout = manifestTimeout
 	} else if manifestTimeout <= 0 && pta.Timeout <= 0 {

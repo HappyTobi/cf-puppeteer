@@ -97,7 +97,7 @@ func (resource *ResourcesData) GenerateNoRouteYml(appName string, originalManife
 		return "", err
 	}
 	//clean up manifest
-	newTempManifest.ApplicationManifests[0].NoRoute = true
+	newTempManifest.ApplicationManifests[0].NoRoute = "true"
 	newTempManifest.ApplicationManifests[0].Routes = []map[string]string{}
 
 	_, err = manifest.WriteYmlFile(manifestPathTemp, originalManifest)
