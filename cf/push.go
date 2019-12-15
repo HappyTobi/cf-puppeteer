@@ -18,6 +18,7 @@ type ApplicationPushData struct {
 //PuppeteerPush push application interface
 type PuppeteerPush interface {
 	PushApplication(venAppName string, venAppExists bool, spaceGUID string, parsedArguments *arguments.ParserArguments) error
+	SwitchRoutes(venAppName string, venAppExists bool, appName string, routes []map[string]string, legacyPush bool) error
 }
 
 //NewApplicationPush generate new cf puppeteer push
@@ -32,17 +33,20 @@ func NewApplicationPush(conn plugin.CliConnection, traceLogging bool) *Applicati
 func (adp *ApplicationPushData) PushApplication(venAppName string, venAppExists bool, spaceGUID string, parsedArguments *arguments.ParserArguments) error {
 	if parsedArguments.LegacyPush == true {
 		var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)
-		if parsedArguments.AddRoutes {
-			return legacyPush.SwitchRoutesOnly(venAppName, venAppExists, parsedArguments.AppName, parsedArguments.Manifest.ApplicationManifests[0].Routes)
-		}
 		return legacyPush.PushApplication(venAppName, spaceGUID, parsedArguments)
 	}
 	//v3 push
 	var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
 	var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
-	if parsedArguments.AddRoutes {
-		//TODO loop over applications
-		return push.SwitchRoutesOnly(venAppName, parsedArguments.AppName, parsedArguments.Manifest.ApplicationManifests[0].Routes)
-	}
 	return push.PushApplication(venAppName, spaceGUID, parsedArguments, v2Resources)
+}
+
+//handle route switch
+func (adp *ApplicationPushData) SwitchRoutes(venAppName string, venAppExists bool, appName string, routes []map[string]string, legacyPush bool) error {
+	if legacyPush {
+		var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)
+		return legacyPush.SwitchRoutesOnly(venAppName, venAppExists, appName, routes)
+	}
+	var push v3.Push = v3.NewV3Push(adp.Connection, adp.TraceLogging)
+	return push.SwitchRoutesOnly(venAppName, appName, routes)
 }
