@@ -160,6 +160,7 @@ var _ = Describe("Flag Parsing", func() {
 				"--show-app-log",
 				"--route-only",
 				"--no-start",
+				"--vars-file", "../fixtures/valid_vars_file.yml",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -179,6 +180,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/foo/bar"))
 		Expect(parsedArguments.AddRoutes).To(Equal(true))
 		Expect(parsedArguments.NoStart).To(Equal(true))
+		Expect(parsedArguments.VarsFile).To(Equal("../fixtures/valid_vars_file.yml"))
 	})
 
 	It("parses args without appName and wrong envs format", func() {
