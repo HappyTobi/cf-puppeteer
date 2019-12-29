@@ -37,8 +37,10 @@ func venerableAppName(appName string) string {
 
 func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.ParserArguments) []rewind.Action {
 	venName := venerableAppName(parsedArguments.AppName)
+	puppeteerPush := cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
 	var err error
-	var curApp, venApp *v2.AppResourcesEntity
+	var curApp *v2.AppResourcesEntity
+	var venApp *v2.AppResourcesEntity
 
 	return []rewind.Action{
 		// get info about current app
@@ -105,8 +107,10 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				if err != nil {
 					return err
 				}
-				var puppeteerPush cf.PuppeteerPush = cf.NewApplicationPush(appRepo.conn, appRepo.traceLogging)
-				return puppeteerPush.PushApplication(venName, venAppExists, space.Guid, parsedArguments)
+				if parsedArguments.AddRoutes == false {
+					return puppeteerPush.PushApplication(venName, venAppExists, space.Guid, parsedArguments)
+				}
+				return nil
 			},
 			//When upload fails the new application will be deleted and ven app will be renamed
 			ReversePrevious: func() error {
@@ -139,6 +143,25 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				// We delete this application so that the rename can succeed
 				_ = appRepo.v2Resources.DeleteApplication(parsedArguments.AppName)
 
+				return appRepo.v2Resources.RenameApplication(venName, parsedArguments.AppName)
+			},
+		},
+		//switch routes because new application was started correct
+		{
+			Forward: func() error {
+				//switch route only is application was started and route switch option was set
+				ui.Say("check if routes should be added or switched from existing one")
+				if parsedArguments.NoStart == false && parsedArguments.NoRoute == false {
+					venAppExists := venApp != nil
+					return puppeteerPush.SwitchRoutes(venName, venAppExists, parsedArguments.AppName, parsedArguments.Manifest.ApplicationManifests[0].Routes, parsedArguments.LegacyPush)
+				}
+				ui.Say("nothing to do")
+				return nil
+			},
+			ReversePrevious: func() error {
+				// If the app cannot start we'll have a lingering application
+				// We delete this application so that the rename can succeed
+				_ = appRepo.v2Resources.DeleteApplication(parsedArguments.AppName)
 				return appRepo.v2Resources.RenameApplication(venName, parsedArguments.AppName)
 			},
 		},
@@ -232,6 +255,7 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-no-start":        "don't start application after deployment; venerable action will none",
 						"-docker-image":    "docker image url",
 						"-docker-username": "docker repository username; used with password from env CF_DOCKER_PASSWORD",
+						"-vars-file":       "path to a variable substitution file for manifest",
 					},
 				},
 			},
