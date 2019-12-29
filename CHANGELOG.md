@@ -10,15 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add argument to cleanup unused environment variables
 - log deployment time
 - refactor push - add rewind to all push things
-- add parallel push to multi manifest
 - multi manifest pushed in parallel
-
 - multi manifest works correct.
 
-## [1.2.0] - XXXX-XX-XX
+## [1.2.0] - 2019-12-XX
+
+### Added
+- --vars-file argument was available again 
 
 ### Changed
 - move all v2 operations into the v2 package
+- delete cloud controller version check
+- all routes will be switched lazy (after starting up the new application)  
+- clean up code
 
 
 ## [1.1.3] - 2019-11-26 
