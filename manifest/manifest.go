@@ -19,7 +19,7 @@ type Application struct {
 	Memory                  string              `yaml:"memory,omitempty"`
 	DiskQuota               string              `yaml:"disk_quota,omitempty"`
 	Routes                  []map[string]string `yaml:"routes,omitempty"`
-	NoRoute                 string              `yaml:"no-route,omitempty"`
+	NoRoute                 bool                `yaml:"no-route,omitempty"`
 	Buildpacks              []string            `yaml:"buildpacks,omitempty"`
 	Command                 string              `yaml:"command,omitempty"`
 	Env                     map[string]string   `yaml:"env,omitempty"`
@@ -41,8 +41,7 @@ type Variables map[string]interface{}
 
 //regex pattern - @see cf cli code
 var (
-	variablePlaceholderPattern = `\(\((!?[-/\.\w\pL]+)\)\)`
-	interpolationRegex         = regexp.MustCompile(`\(\((!?[-/\.\w\pL]+)\)\)`)
+	interpolationRegex = regexp.MustCompile(`\(\((!?[-/\.\w\pL]+)\)\)`)
 )
 
 //ParseAndReplaceWithVars parse a manifest and vars file.
