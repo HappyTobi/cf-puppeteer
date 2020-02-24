@@ -25,7 +25,6 @@ type ParserArguments struct {
 	StackName               string
 	VenerableAction         string
 	Envs                    map[string]string
-	ShowLogs                bool
 	ShowCrashLogs           bool
 	DockerImage             string
 	DockerUserName          string
@@ -75,10 +74,9 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.StringVar(&pta.StackName, "s", "", "name of the stack to use")
 	flags.StringVar(&pta.HealthCheckType, "health-check-type", "port", "type of health check to perform")
 	flags.StringVar(&pta.HealthCheckHTTPEndpoint, "health-check-http-endpoint", "", "endpoint for the 'http' health check type")
-	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (defaults to 60 seconds)")
+	flags.IntVar(&pta.Timeout, "t", 0, "push timeout in seconds (default 60 seconds)")
 	flags.IntVar(&pta.InvocationTimeout, "invocation-timeout", -1, "health check invocation timeout in seconds")
 	flags.StringVar(&pta.Process, "process", "", "use health check type process")
-	flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.BoolVar(&pta.ShowCrashLogs, "show-crash-log", false, "Show recent logs when applications crashes while the deployment")
 	flags.StringVar(&pta.VenerableAction, "venerable-action", "delete", "option to delete,stop,none application action on venerable app default is delete")
 	flags.Var(&envs, "env", "Variable key value pair for adding dynamic environment variables; can specify multiple times")
@@ -87,7 +85,6 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	flags.BoolVar(&pta.AddRoutes, "route-only", false, "only add routes from manifest to the application")
 	flags.BoolVar(&pta.NoStart, "no-start", false, "don't start application after deployment; venerable action is none")
 	flags.StringVar(&pta.VarsFile, "vars-file", "", "path to a variable substitution file for manifest")
-	//flags.BoolVar(&pta.ShowLogs, "show-app-log", false, "tail and show application log during application start")
 	flags.StringVar(&pta.DockerImage, "docker-image", "", "docker image url")
 	flags.StringVar(&pta.DockerUserName, "docker-username", "", "docker repository username; used with password from env CF_DOCKER_PASSWORD")
 	dockerPass := os.Getenv("CF_DOCKER_PASSWORD")
@@ -101,7 +98,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	argumentStartIndex := 2
 	//if first argument is not the appName we have to read the appName out of the manifest
 	noAppNameProvided, _ := regexp.MatchString("^-[a-z]{0,3}", args[1])
-	//noAppNameProvided := strings.Contains(args[1], "-")
+
 	if noAppNameProvided {
 		argumentStartIndex = 1
 	}
