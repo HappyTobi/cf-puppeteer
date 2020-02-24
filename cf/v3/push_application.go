@@ -7,7 +7,6 @@ import (
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
-	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"github.com/pkg/errors"
 	"strconv"
@@ -51,13 +50,8 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 
 	ui.Say("generate manifest without routes...")
 
-	manifestPath, err := resource.GenerateNoRouteYml(parsedArguments.AppName, parsedArguments.Manifest)
-	if err != nil {
-		return errors.Wrap(err, "could not generate a new temp manifest without routes")
-	}
-
 	ui.Say("apply manifest file")
-	err = resource.AssignAppManifest(manifestPath)
+	err = resource.AssignAppManifest(parsedArguments.NoRouteManifestPath)
 	if err != nil {
 		return err
 	}
@@ -81,26 +75,6 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 //SwitchRoutes switch route interface method to provide switch routes only option
 func (resource *ResourcesData) SwitchRoutesOnly(venAppName string, appName string, routes []map[string]string) (err error) {
 	return resource.SwitchRoutes(venAppName, appName, routes)
-}
-
-//GenerateNoRouteYml generate temp manifest without routes to skip route creation
-func (resource *ResourcesData) GenerateNoRouteYml(appName string, originalManifest manifest.Manifest) (newManifestPath string, err error) {
-	//Clone manifest to change them without side effects
-	newTempManifest := manifest.Manifest{ApplicationManifests: make([]manifest.Application, len(originalManifest.ApplicationManifests))}
-
-	//copy important information into no route yml (only resources are important)
-	for index, app := range originalManifest.ApplicationManifests {
-		newApp := manifest.Application{Name: app.Name, Instances: app.Instances, Memory: app.Memory, DiskQuota: app.DiskQuota, NoRoute: true, Routes: []map[string]string{}}
-		newTempManifest.ApplicationManifests[index] = newApp
-	}
-
-	manifestPathTemp := resource.GenerateTempFile(appName, "yml")
-	_, err = manifest.WriteYmlFile(manifestPathTemp, newTempManifest)
-
-	if err != nil {
-		return "", err
-	}
-	return manifestPathTemp, nil
 }
 
 //SwitchRoutes add new routes and switch "old" one from venerable app to the one

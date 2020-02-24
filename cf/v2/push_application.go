@@ -33,7 +33,7 @@ func NewV2LegacyPush(conn plugin.CliConnection, traceLogging bool) *LegacyResour
 func (resource *LegacyResourcesData) PushApplication(parsedArguments *arguments.ParserArguments) error {
 	ui.InfoMessage("Use legacy push")
 
-	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start"}
+	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start", "--no-route"}
 	if parsedArguments.AppPath != "" {
 		args = append(args, "-p", parsedArguments.AppPath)
 	}
@@ -49,10 +49,6 @@ func (resource *LegacyResourcesData) PushApplication(parsedArguments *arguments.
 
 	if parsedArguments.NoStart {
 		args = append(args, "--no-start")
-	}
-
-	if parsedArguments.NoRoute {
-		args = append(args, "--no-route")
 	}
 
 	ui.Say("start pushing application with arguments %s", args)
