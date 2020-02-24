@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/i18n"
 	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/trace"
+	"fmt"
 	"os"
 )
 
@@ -31,14 +32,33 @@ func Ok() {
 	ui.Ok()
 }
 
+//InfoMessage print out message in green / ok colored mode
+func InfoMessage(message string) {
+	ui.Say(terminal.SuccessColor(message))
+}
+
 //Failed message see cf/terminal
 func Failed(message string, args ...interface{}) {
 	ui.Failed(message, args...)
 }
 
+//FailedMessage print out message in error color without the "FAILED" message
+func FailedMessage(message string) {
+	ui.Say(terminal.FailureColor(message))
+}
+
 //Warn message see cf/terminal
 func Warn(message string, args ...interface{}) {
 	ui.Warn(message, args...)
+}
+
+func DebugMessage(message string, args ...interface{}) {
+	traceEnv := os.Getenv("CF_TRACE")
+	if traceEnv == "true" || (traceEnv != "false" && len(traceEnv) > 0) {
+		//check env for CF_TRACE
+		message = fmt.Sprintf(message, args...)
+		ui.Say(terminal.AdvisoryColor(message))
+	}
 }
 
 //LoadingIndication message see cf/terminal
