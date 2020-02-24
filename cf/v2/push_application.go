@@ -12,7 +12,7 @@ import (
 
 //Push interface with all v3 actions
 type Push interface {
-	PushApplication(venAppName string, spaceGUID string, parsedArguments *arguments.ParserArguments) error
+	PushApplication(parsedArguments *arguments.ParserArguments) error
 	SwitchRoutesOnly(venAppName string, venAppExists bool, appName string, routes []map[string]string) error
 }
 
@@ -30,10 +30,10 @@ func NewV2LegacyPush(conn plugin.CliConnection, traceLogging bool) *LegacyResour
 	}
 }
 
-func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID string, parsedArguments *arguments.ParserArguments) error {
-	ui.Say("use legacy push")
+func (resource *LegacyResourcesData) PushApplication(parsedArguments *arguments.ParserArguments) error {
+	ui.InfoMessage("Use legacy push")
 
-	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start"}
+	args := []string{"push", parsedArguments.AppName, "-f", parsedArguments.ManifestPath, "--no-start", "--no-route"}
 	if parsedArguments.AppPath != "" {
 		args = append(args, "-p", parsedArguments.AppPath)
 	}
@@ -49,10 +49,6 @@ func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID strin
 
 	if parsedArguments.NoStart {
 		args = append(args, "--no-start")
-	}
-
-	if parsedArguments.NoRoute {
-		args = append(args, "--no-route")
 	}
 
 	ui.Say("start pushing application with arguments %s", args)
@@ -71,7 +67,7 @@ func (resource *LegacyResourcesData) PushApplication(venAppName, spaceGUID strin
 }
 
 //SwitchRoutes switch route interface method to provide switch routes only option
-func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string,venAppExists bool, appName string, routes []map[string]string) (err error) {
+func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string, venAppExists bool, appName string, routes []map[string]string) (err error) {
 	domains, err := resource.GetDomain(routes)
 	if err != nil {
 		return err
@@ -102,13 +98,11 @@ func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string,venAppEx
 
 func (resource *LegacyResourcesData) setEnvironmentVariables(parsedArguments *arguments.ParserArguments) (err error) {
 	ui.Say("set passed environment variables")
-	varArgs := []string{"set-env", parsedArguments.AppName}
 	//set all variables passed by --var
 	for envKey, envVal := range parsedArguments.Envs {
-		tmpArgs := make([]string, len(parsedArguments.Envs))
-		copy(tmpArgs, varArgs)
-		tmpArgs = append(tmpArgs, fmt.Sprintf("%s %s", envKey, envVal))
-		err := resource.Executor.Execute(tmpArgs)
+		executeArgument := []string{"set-env", parsedArguments.AppName, envKey, envVal}
+		ui.DebugMessage("set-env: %s", executeArgument)
+		err := resource.Executor.Execute(executeArgument)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("could not set env-variable with key %s to application %s", envKey, parsedArguments.AppName))
 		}

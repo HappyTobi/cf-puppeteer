@@ -99,9 +99,39 @@ func (resource *ResourcesData) GetAppMetadata(appName string) (*AppResourcesEnti
 	}
 
 	if len(metaDataResponseEntity.AppResourcesEntity) == 0 {
-		ui.Warn("No venerable application found")
+		ui.Warn(fmt.Sprintf("No application with name: %s found", appName))
 		return nil, ErrAppNotFound
 	}
 
 	return &metaDataResponseEntity.AppResourcesEntity[0], nil
+}
+
+func (resource *ResourcesData) RenameApplication(oldName, newName string) error {
+	_, err := resource.connection.CliCommand("rename", oldName, newName)
+	return err
+}
+
+func (resource *ResourcesData) StopApplication(appName string) error {
+	_, err := resource.connection.CliCommand("stop", appName)
+	return err
+}
+
+func (resource *ResourcesData) StartApplication(appName string) error {
+	_, err := resource.connection.CliCommand("start", appName)
+	return err
+}
+
+func (resource *ResourcesData) DeleteApplication(appName string) error {
+	_, err := resource.connection.CliCommand("delete", appName, "-f")
+	return err
+}
+
+func (resource *ResourcesData) ShowCrashLogs(appName string) error {
+	_, err := resource.connection.CliCommand("logs", "--recent", appName)
+	return err
+}
+
+func (resource *ResourcesData) ListApplications() error {
+	_, err := resource.connection.CliCommand("apps")
+	return err
 }

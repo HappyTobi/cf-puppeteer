@@ -1,0 +1,21 @@
+---
+applications:
+  - name: myApp
+    memory: ((memory))
+    buildpacks:
+      - java_buildpack
+      - go_buildpack
+    instances: ((instances))
+    health-check-type: http
+    health-check-http-endpoint: /health
+    timeout: 2
+    routes:
+      - route: ((host)).external.test.com
+      - route: ((host)).internal.test.com
+      - route: super.external.test.com
+    services:
+      - service1
+      - service2
+    env:
+      VAR1: 1
+      VAR2: https://github.com/happytobi

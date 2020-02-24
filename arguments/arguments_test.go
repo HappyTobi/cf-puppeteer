@@ -42,7 +42,6 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal(map[string]string{"foo": "bar", "baz": "bob=true"}))
 		Expect(parsedArguments.VenerableAction).Should(Equal("stop"))
-		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(2211))
@@ -69,7 +68,6 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.AppPath).To(Equal("app-path"))
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.VenerableAction).Should(Equal("delete"))
-		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.NoRoute).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(2))
@@ -101,7 +99,6 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal(map[string]string{"foo": "bar", "baz": "bob"}))
 		Expect(parsedArguments.VenerableAction).Should(Equal("stop"))
-		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.NoRoute).To(Equal(true))
 		Expect(parsedArguments.Timeout).To(Equal(2))
@@ -133,7 +130,6 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal(map[string]string{"foo": "bar", "baz": "bob"}))
 		Expect(parsedArguments.VenerableAction).Should(Equal("stop"))
-		Expect(parsedArguments.ShowLogs).To(Equal(false))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(true))
 		Expect(parsedArguments.Timeout).To(Equal(60))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(-1))
@@ -157,9 +153,9 @@ var _ = Describe("Flag Parsing", func() {
 				"--process", "process-name",
 				"--health-check-type", "process",
 				"--health-check-http-endpoint", "/foo/bar",
-				"--show-app-log",
 				"--route-only",
 				"--no-start",
+				"--vars-file", "../fixtures/valid_vars_file.yml",
 			},
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -170,7 +166,6 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.StackName).To(Equal("stack-name"))
 		Expect(parsedArguments.Envs).To(Equal(map[string]string{"foo": "bar", "baz": "bob"}))
 		Expect(parsedArguments.VenerableAction).Should(Equal("none"))
-		Expect(parsedArguments.ShowLogs).To(Equal(true))
 		Expect(parsedArguments.ShowCrashLogs).To(Equal(false))
 		Expect(parsedArguments.Timeout).To(Equal(120))
 		Expect(parsedArguments.InvocationTimeout).To(Equal(2211))
@@ -179,6 +174,7 @@ var _ = Describe("Flag Parsing", func() {
 		Expect(parsedArguments.HealthCheckHTTPEndpoint).To(Equal("/foo/bar"))
 		Expect(parsedArguments.AddRoutes).To(Equal(true))
 		Expect(parsedArguments.NoStart).To(Equal(true))
+		Expect(parsedArguments.VarsFile).To(Equal("../fixtures/valid_vars_file.yml"))
 	})
 
 	It("parses args without appName and wrong envs format", func() {

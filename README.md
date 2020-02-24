@@ -8,6 +8,8 @@
 
 *cf plugin for hands-off, zero downtime application deploys*
 
+ 
+ 
 ## Documentation / Website
 [CF-Puppeteer Website](https://cf-puppeteer.happytobi.com).
 
@@ -23,7 +25,7 @@ To get an overview of the changes between versions, read the [changelog](CHANGEL
 
 ## Version
 
-The latest version of *CF-Puppeteer* is *1.1.2*. It works with and is based on Cloud Foundry CLI version 6.43.0.
+The latest version of *CF-Puppeteer* is *1.2.0*. It works with and is based on Cloud Foundry CLI version 6.43.0.
 
 For more details on the most recent release, check out the [changelog](CHANGELOG.md).
 
@@ -103,3 +105,8 @@ That only works with the option `--legacy-push`
 
 To fix that issue, please remove the `path` from your manifest and pass the Artifact / Folder with the `-p` option.
  
+If there is a problem while pushing you application you can see the complete trace by setting
+
+Windows: `CF_TRACE=true`
+ 
+Unix: `CF_TRACE=/dev/stdout`
