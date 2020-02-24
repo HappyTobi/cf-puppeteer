@@ -33,7 +33,7 @@ func NewApplicationPush(conn plugin.CliConnection, traceLogging bool) *Applicati
 func (adp *ApplicationPushData) PushApplication(venAppName string, venAppExists bool, spaceGUID string, parsedArguments *arguments.ParserArguments) error {
 	if parsedArguments.LegacyPush == true {
 		var legacyPush v2.Push = v2.NewV2LegacyPush(adp.Connection, adp.TraceLogging)
-		return legacyPush.PushApplication(venAppName, spaceGUID, parsedArguments)
+		return legacyPush.PushApplication(parsedArguments)
 	}
 	//v3 push
 	var v2Resources v2.Resources = v2.NewV2Resources(adp.Connection, adp.TraceLogging)
