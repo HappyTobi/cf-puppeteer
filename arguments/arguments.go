@@ -16,6 +16,7 @@ import (
 type ParserArguments struct {
 	AppName                 string
 	ManifestPath            string
+	NoRouteManifestPath     string
 	AppPath                 string
 	HealthCheckType         string
 	HealthCheckHTTPEndpoint string
@@ -113,7 +114,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	//parse manifest
-	parsedManifest, err := manifest.ParseApplicationManifest(pta.ManifestPath, pta.VarsFile)
+	parsedManifest, noRouteManifestPath, err := manifest.ParseApplicationManifest(pta.ManifestPath, pta.VarsFile)
 	if err != nil {
 		return pta, err //ErrManifest
 	}
@@ -123,6 +124,7 @@ func ParseArgs(args []string) (*ParserArguments, error) {
 	}
 
 	pta.Manifest = parsedManifest
+	pta.NoRouteManifestPath = noRouteManifestPath
 
 	//check if a docker image shouldbe pushed and verify passed args combination
 	if len(pta.DockerUserName) > 0 && (len(dockerPass) == 0 || len(pta.DockerImage) == 0) {
