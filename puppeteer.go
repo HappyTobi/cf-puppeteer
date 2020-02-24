@@ -1,21 +1,15 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"os"
-	"strings"
-	"time"
-
-	"code.cloudfoundry.org/cli/cf/api/logs"
 	"code.cloudfoundry.org/cli/plugin"
-	"github.com/cloudfoundry/noaa/consumer"
+	"fmt"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/rewind"
 	"github.com/happytobi/cf-puppeteer/ui"
+	"os"
+	"strings"
 )
 
 func fatalIf(err error) {
@@ -114,19 +108,15 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 			},
 			//When upload fails the new application will be deleted and ven app will be renamed
 			ReversePrevious: func() error {
-				ui.Failed("error while uploading / deploying the application... roll everything back")
+				ui.FailedMessage("error while uploading / deploying the application... roll everything back")
 				_ = appRepo.v2Resources.DeleteApplication(parsedArguments.AppName)
-				return appRepo.v2Resources.RenameApplication(venName, parsedArguments.AppName)
+				_ = appRepo.v2Resources.RenameApplication(venName, parsedArguments.AppName)
+				return nil
 			},
 		},
 		// start
 		{
 			Forward: func() error {
-				if parsedArguments.ShowLogs {
-					ui.Say("show logs...")
-					// TODO not working anymore
-					_ = appRepo.ShowLogs(parsedArguments.AppName)
-				}
 				if parsedArguments.NoStart == false {
 					return appRepo.v2Resources.StartApplication(parsedArguments.AppName)
 				}
@@ -142,7 +132,6 @@ func getActionsForApp(appRepo *ApplicationRepo, parsedArguments *arguments.Parse
 				// If the app cannot start we'll have a lingering application
 				// We delete this application so that the rename can succeed
 				_ = appRepo.v2Resources.DeleteApplication(parsedArguments.AppName)
-
 				return appRepo.v2Resources.RenameApplication(venName, parsedArguments.AppName)
 			},
 		},
@@ -202,7 +191,7 @@ func (plugin CfPuppeteerPlugin) Run(cliConnection plugin.CliConnection, args []s
 	}
 
 	var traceLogging bool
-	if os.Getenv("CF_PUPPETEER_TRACE") == "true" {
+	if os.Getenv("CF_TRACE") == "true" {
 		traceLogging = true
 	}
 	appRepo := NewApplicationRepo(cliConnection, traceLogging)
@@ -247,15 +236,14 @@ func (CfPuppeteerPlugin) GetMetadata() plugin.PluginMetadata {
 						"-health-check-http-endpoint": "endpoint for the 'http' health check type",
 						"-invocation-timeout":         "timeout (in seconds) that controls individual health check invocations",
 						"-show-crash-log":             "Show recent logs when applications crashes while the deployment",
-						//"-show-app-log": "tail and show application log during application start",
-						"-process":         "use health check type process",
-						"-legacy-push":     "use legacy push instead of new v3 api",
-						"-no-route":        "deploy new application without adding routes",
-						"-route-only":      "only add routes from manifest to application",
-						"-no-start":        "don't start application after deployment; venerable action will none",
-						"-docker-image":    "docker image url",
-						"-docker-username": "docker repository username; used with password from env CF_DOCKER_PASSWORD",
-						"-vars-file":       "path to a variable substitution file for manifest",
+						"-process":                    "use health check type process",
+						"-legacy-push":                "use legacy push instead of new v3 api",
+						"-no-route":                   "deploy new application without adding routes",
+						"-route-only":                 "only add routes from manifest to application",
+						"-no-start":                   "don't start application after deployment; venerable action will none",
+						"-docker-image":               "docker image url",
+						"-docker-username":            "docker repository username; used with password from env CF_DOCKER_PASSWORD",
+						"-vars-file":                  "path to a variable substitution file for manifest",
 					},
 				},
 			},
@@ -275,43 +263,4 @@ func NewApplicationRepo(conn plugin.CliConnection, traceLogging bool) *Applicati
 		traceLogging: traceLogging,
 		v2Resources:  v2.NewV2Resources(conn, traceLogging),
 	}
-}
-
-func (repo *ApplicationRepo) ShowLogs(appName string) error {
-	app, err := repo.conn.GetApp(appName)
-	if err != nil {
-		return err
-	}
-
-	dopplerEndpoint, err := repo.conn.DopplerEndpoint()
-	if err != nil {
-		return err
-	}
-	token, err := repo.conn.AccessToken()
-	if err != nil {
-		return err
-	}
-
-	cons := consumer.New(dopplerEndpoint, nil, nil)
-	defer cons.Close()
-
-	messages, chanError := cons.TailingLogs(app.Guid, token)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go func() {
-		for {
-			select {
-			case m := <-messages:
-				if m.GetSourceType() != "STG" { // skip STG messages as the cf tool already prints them
-					os.Stderr.WriteString(logs.NewNoaaLogMessage(m).ToLog(time.Local) + "\n")
-				}
-			case e := <-chanError:
-				log.Println("error reading logs:", e)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return nil
 }
