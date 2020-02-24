@@ -9,7 +9,6 @@ import (
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
 	"github.com/happytobi/cf-puppeteer/manifest"
 	"github.com/happytobi/cf-puppeteer/ui"
-	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"strconv"
 )
@@ -50,17 +49,14 @@ func (resource *ResourcesData) PushApplication(venAppName, spaceGUID string, par
 		return err
 	}
 
-	ui.Say("apply manifest file")
-	manifestPath := parsedArguments.ManifestPath
-	if parsedArguments.NoRoute {
-		newManifestPath, err := resource.GenerateNoRouteYml(parsedArguments.AppName, parsedArguments.Manifest)
-		if err != nil {
-			return errors.Wrap(err, "could not generate a new temp manifest without routes")
-		}
-		ui.Say("use no route manifest")
-		manifestPath = newManifestPath
+	ui.Say("generate manifest without routes...")
+
+	manifestPath, err := resource.GenerateNoRouteYml(parsedArguments.AppName, parsedArguments.Manifest)
+	if err != nil {
+		return errors.Wrap(err, "could not generate a new temp manifest without routes")
 	}
 
+	ui.Say("apply manifest file")
 	err = resource.AssignAppManifest(manifestPath)
 	if err != nil {
 		return err
@@ -89,18 +85,18 @@ func (resource *ResourcesData) SwitchRoutesOnly(venAppName string, appName strin
 
 //GenerateNoRouteYml generate temp manifest without routes to skip route creation
 func (resource *ResourcesData) GenerateNoRouteYml(appName string, originalManifest manifest.Manifest) (newManifestPath string, err error) {
-	manifestPathTemp := resource.GenerateTempFile(appName, "yml")
 	//Clone manifest to change them without side effects
-	newTempManifest := manifest.Manifest{}
-	err = copier.Copy(&newTempManifest, &originalManifest)
-	if err != nil {
-		return "", err
-	}
-	//clean up manifest
-	newTempManifest.ApplicationManifests[0].NoRoute = "true"
-	newTempManifest.ApplicationManifests[0].Routes = []map[string]string{}
+	newTempManifest := manifest.Manifest{ApplicationManifests: make([]manifest.Application, len(originalManifest.ApplicationManifests))}
 
-	_, err = manifest.WriteYmlFile(manifestPathTemp, originalManifest)
+	//copy important information into no route yml (only resources are important)
+	for index, app := range originalManifest.ApplicationManifests {
+		newApp := manifest.Application{Name: app.Name, Instances: app.Instances, Memory: app.Memory, DiskQuota: app.DiskQuota, NoRoute: true, Routes: []map[string]string{}}
+		newTempManifest.ApplicationManifests[index] = newApp
+	}
+
+	manifestPathTemp := resource.GenerateTempFile(appName, "yml")
+	_, err = manifest.WriteYmlFile(manifestPathTemp, newTempManifest)
+
 	if err != nil {
 		return "", err
 	}
