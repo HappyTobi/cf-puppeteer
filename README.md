@@ -8,6 +8,8 @@
 
 *cf plugin for hands-off, zero downtime application deploys*
 
+ 
+ 
 ## Documentation / Website
 [CF-Puppeteer Website](https://cf-puppeteer.happytobi.com).
 
@@ -103,3 +105,8 @@ That only works with the option `--legacy-push`
 
 To fix that issue, please remove the `path` from your manifest and pass the Artifact / Folder with the `-p` option.
  
+If there is a problem while pushing you application you can see the complete trace by setting
+
+Windows: `CF_TRACE=true`
+ 
+Unix: `CF_TRACE=/dev/stdout`

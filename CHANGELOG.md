@@ -7,23 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Upcoming features [1.x.x]
 
-- add argument to cleanup unused environment variables
 - log deployment time
 - refactor push - add rewind to all push things
 - multi manifest pushed in parallel
 - multi manifest works correct.
+- check space quota before deployment (if user pass the option)
+- set timeout how long the deployment will wait for more / free space
 
-## [1.2.0] - 2019-12-XX
+## [1.2.0] - 2020-02-24
 
 ### Added
-- --vars-file argument was available again 
+- --vars-file argument was available again
 
 ### Changed
 - move all v2 operations into the v2 package
 - delete cloud controller version check
-- all routes will be switched lazy (after starting up the new application)  
+- all routes will be switched lazy now (after starting up the new application)  
+- dropped CF_PUPPETEER_TRACE and replace them with CF_TRACE (read the README "Known issues section" for using it)
 - clean up code
+- move temp manifest file generator to the manifest file
 
+### Fixed
+- error while passing environment variables on legacy push (--env)
 
 ## [1.1.3] - 2019-11-26 
 
@@ -44,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - documentation update
 - back port "--no-route" and "--route-only" option to "--legacy-push" (v2).
 - docker support was available again
-- vendor-option droped
+- vendor-option dropped
 - options was sorted right now (go 1.12)
 
 ### Fixed
