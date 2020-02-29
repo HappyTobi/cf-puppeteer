@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - check space quota before deployment (if user pass the option)
 - set timeout how long the deployment will wait for more / free space
 
+## [1.3.0] - 2020-XX-XX
+
+### Added
+- add new puppeteer hooks where you can run custom cf plugins / commands between the deployment
+
 ## [1.2.0] - 2020-02-24
 
 ### Added
