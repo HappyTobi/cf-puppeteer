@@ -22,5 +22,4 @@ jobs:
 
       - name: Run tests
         run: |
-          ls -alitr
-          go test ./..
+          go test ./...
