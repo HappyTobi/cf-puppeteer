@@ -16,8 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         id: checkout
-      
+
+      - name: Install dep
+        run: |
+          - go mod
+
       - name: Run tests
         run: |
-          govendor install vendor/github.com/onsi/ginkgo/ginkgo
-          ginkgo -r "$@"
+          - go test ./..
