@@ -2,7 +2,7 @@ name: cf-puppeteer
 on: [push]
 
 jobs:
-  build:
+  unit_test_job:
     name: Tests
     runs-on: ubuntu-latest
     steps:
@@ -23,3 +23,19 @@ jobs:
       - name: Run tests
         run: |
           go test ./...
+
+  int_test_job:
+    name: Run integration tests
+    steps:
+      - name: Login into cf
+          run: |
+            echo "TODO"
+
+  release_job:
+    name: Build binary
+    needs: [unit_test_job, int_test_job]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dep
+        run: |
+          sh ./scripts/build-release.sh

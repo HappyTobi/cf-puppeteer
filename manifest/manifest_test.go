@@ -80,7 +80,7 @@ var _ = Describe("Write new manifest", func() {
 	It("write manifest file to specified path", func() {
 		manifest, _, err := ParseApplicationManifest("../fixtures/manifest.yml", "")
 		Expect(err).ShouldNot(HaveOccurred())
-		tempFile := fmt.Sprintf("%s%s", os.TempDir(), "testManifest.yml")
+		tempFile := fmt.Sprintf("%s/%s", os.TempDir(), "testManifest.yml")
 		err = WriteYmlFile(tempFile, manifest)
 		Expect(err).ShouldNot(HaveOccurred())
 		fmt.Printf("%s", tempFile)
