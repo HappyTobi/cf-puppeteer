@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dep
         run: |
-          go mod
+          go mod tidy
 
       - name: Run tests
         run: |
