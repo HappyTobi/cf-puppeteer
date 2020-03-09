@@ -38,6 +38,18 @@ jobs:
     needs: [unit_test_job, int_test_job]
     runs-on: ubuntu-latest
     steps:
-      - name: Install dep
+      - name: create artifacts dirs
         run: |
-          sh ./scripts/build-release.sh
+          mkdir -p ./artifacts
+      - name: create linux binary
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer-linux github.com/happytobi/cf-puppeteer
+          shasum ./artifacts/cf-puppeteer-linux
+      - name: create mac binary
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o ./artifacts/cf-puppeteer-darwin github.com/happytobi/cf-puppeteer
+          shasum ./artifacts/cf-puppeteer-darwin
+      - name: create win binary
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o ./artifacts/cf-puppeteer.exe github.com/happytobi/cf-puppeteer
+          shasum ./artifacts/cf-puppeteer.exe
