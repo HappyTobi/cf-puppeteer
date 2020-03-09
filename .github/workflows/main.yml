@@ -37,6 +37,7 @@ jobs:
     name: Build binary
     needs: [unit_test_job, int_test_job]
     runs-on: ubuntu-latest
+    #if: github.ref == 'refs/heads/develop'
     steps:
       - name: Set up Go 1.14
         uses: actions/setup-go@v1
@@ -53,11 +54,24 @@ jobs:
         run: |
           CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer-linux github.com/happytobi/cf-puppeteer
           shasum ./artifacts/cf-puppeteer-linux
+      - uses: actions/upload-artifact@v1
+        with:
+          name: cf-puppeteer-linux
+          path: artifacts/cf-puppeteer-linux
       - name: create mac binary
         run: |
           CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o ./artifacts/cf-puppeteer-darwin github.com/happytobi/cf-puppeteer
           shasum ./artifacts/cf-puppeteer-darwin
+      - uses: actions/upload-artifact@v1
+        with:
+          name: cf-puppeteer-darwin
+          path: artifacts/cf-puppeteer-darwin
       - name: create win binary
         run: |
           CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o ./artifacts/cf-puppeteer.exe github.com/happytobi/cf-puppeteer
           shasum ./artifacts/cf-puppeteer.exe
+      - uses: actions/upload-artifact@v1
+        with:
+          name: cf-puppeteer-windows
+          path: artifacts/cf-puppeteer.exe
+
