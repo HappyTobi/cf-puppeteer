@@ -1,5 +1,4 @@
-name: cf-puppeteer ci
-
+name: cf-puppeteer
 on: [push]
 
 jobs:
@@ -19,6 +18,7 @@ jobs:
 
       - name: Install dep
         run: |
+          cd cf-puppeteer
           go mod tidy
 
       - name: Run tests
