@@ -26,6 +26,8 @@ jobs:
 
   int_test_job:
     name: Run integration tests
+    runs-on: ubuntu-latest
+    needs: [unit_test_job]
     steps:
       - name: Login into cf
         run: |
