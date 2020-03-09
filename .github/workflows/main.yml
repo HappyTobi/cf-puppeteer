@@ -19,8 +19,8 @@ jobs:
 
       - name: Install dep
         run: |
-          - go mod
+          go mod
 
       - name: Run tests
         run: |
-          - go test ./..
+          go test ./..
