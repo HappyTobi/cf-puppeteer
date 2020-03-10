@@ -22,7 +22,7 @@ jobs:
 
       - name: Run tests
         run: |
-          go test ./...
+          gotestsum --format testnames
 
   int_test_job:
     name: Run integration tests
