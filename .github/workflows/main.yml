@@ -18,12 +18,11 @@ jobs:
 
       - name: Build binary and install dep
         run: |
-          go build ./...
+          go mod vendor
 
       - name: Run tests
         run: |
-          go get github.com/gotest.tools/gotestsum
-          gotestsum --format testnames
+          go test ./...
 
   int_test_job:
     name: Run integration tests
