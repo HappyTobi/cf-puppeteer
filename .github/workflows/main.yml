@@ -26,4 +26,7 @@ jobs:
           cf plugins
       - name: CF Login
         run: |
-          cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p foo -o ${{secrets.ORG_BM}} -s dev
+          cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p ${{secrets.PASSWORD_BM}} -o ${{secrets.ORG_BM}} -s dev
+      - name: Deploy Application
+        run: |
+          echo "TODO"
