@@ -16,18 +16,14 @@ jobs:
           sudo apt-get install cf-cli
       - name: Checkout
         uses: actions/checkout@v2
-      - name: compile plugin and install them
+      - name: Compile plugin
         run: |
           mkdir -p ./artifacts
           CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer
+      - name: Install Puppeteer plugin
+        run: |
           cf install-plugin -f ./artifacts/cf-puppeteer
           cf plugins
-      - name: CF CLI Action
-        uses: citizen-of-planet-earth/cf-cli-action@v1
-        with:
-          cf_api: ${{secrets.API_BM}}
-          cf_username: ${{secrets.USER_NAME_BM}}
-          cf_password: ${{secrets.PASSWORD_BM}}
-          cf_org: ${{secrets.ORG_BM}}
-          cf_space: "dev"
-          command: plugins
+      - name: CF Login
+        run: |
+          cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p foo -o ${{secrets.ORG_BM}} -s dev
