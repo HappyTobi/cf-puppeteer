@@ -2,9 +2,32 @@ name: cf-puppeteer
 on: [push]
 
 jobs:
+  unit_test_job:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        id: checkout
+
+      - name: Build binary and install dep
+        run: |
+          go mod vendor
+
+      - name: Run tests
+        run: |
+          go test ./...
+
   int_test_job:
     name: Run integration tests
     runs-on: ubuntu-latest
+    needs: [unit_test_job]
     steps:
       - name: Add CF Cli to apt-get
         run: |
@@ -29,19 +52,67 @@ jobs:
           cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p ${{secrets.PASSWORD_BM}} -o ${{secrets.ORG_BM}} -s dev
       - name: Deploy test application without routes
         run: |
-          cf zero-downtime-push -f test/integration/manifest.yml -p test/integration --no-route --no-start--env foo=bar --venerable-action stop
+          cf zero-downtime-push -f test/integration/application/manifest.yml -p test/integration/application/ --no-route --no-start--env foo=bar --venerable-action stop
       - name: Check deployment 1
         run: |
           echo "Add api tests to check the deployed settings"
       - name: Deploy add routes to application
         run: |
-          cf zero-downtime-push -f test/integration/manifest.yml -p test/integration --route-only
+          cf zero-downtime-push -f test/integration/application/manifest.yml -p test/integration/application/ --route-only
       - name: Delete application
         run: |
           cf delete -f puppeteer
+          cf delete-route -f apps.internal --hostname puppeteer
+          cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer
       - name: Deploy test application (legacy push)
         run: |
-          cf zero-downtime-push -f test/integration/manifest.yml -p test/integration --no-route --no-start--env foo=bar --venerable-action stop --legacy-push
+          cf zero-downtime-push -f test/integration/application/manifest.yml -p test/integration/application/ --no-route --no-start--env foo=bar --venerable-action stop --legacy-push
       - name: Delete application
         run: |
-         cf delete -f puppeteer
+          cf delete -f puppeteer
+          cf delete-route -f apps.internal --hostname puppeteer
+          cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer
+
+  release_job:
+    name: Build binary
+    needs: [unit_test_job, int_test_job]
+    runs-on: ubuntu-latest
+    #if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+      - name: Checkout
+        uses: actions/checkout@v2
+        id: checkout
+      - name: create artifacts dirs
+        run: |
+          mkdir -p ./artifacts
+      - name: create linux binary
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer-linux github.com/happytobi/cf-puppeteer
+          shasum ./artifacts/cf-puppeteer-linux
+      - uses: actions/upload-artifact@v1
+        with:
+          name: cf-puppeteer-linux
+          path: artifacts/cf-puppeteer-linux
+      - name: create mac binary
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o ./artifacts/cf-puppeteer-darwin github.com/happytobi/cf-puppeteer
+          shasum ./artifacts/cf-puppeteer-darwin
+      - uses: actions/upload-artifact@v1
+        with:
+          name: cf-puppeteer-darwin
+          path: artifacts/cf-puppeteer-darwin
+      - name: create win binary
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o ./artifacts/cf-puppeteer.exe github.com/happytobi/cf-puppeteer
+          shasum ./artifacts/cf-puppeteer.exe
+      - uses: actions/upload-artifact@v1
+        with:
+          name: cf-puppeteer-windows
+          path: artifacts/cf-puppeteer.exe
