@@ -29,9 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit_test_job]
     steps:
-      - name: Login into cf
-        run: |
-          echo "TODO"
+      - name: CF CLI Action
+        uses: citizen-of-planet-earth/cf-cli-action@v1
+        with:
+          cf_api: ${{secret.API_BM}}
+          cf_username: ${{secret.USER_NAME_BM}}
+          cf_password: ${{secret.PASSWORD_BM}}
+          cf_org: ${{secret.ORG_BM}}
+          cf_space: "dev"
+          command: plugins
 
   release_job:
     name: Build binary
