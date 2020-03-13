@@ -27,6 +27,21 @@ jobs:
       - name: CF Login
         run: |
           cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p ${{secrets.PASSWORD_BM}} -o ${{secrets.ORG_BM}} -s dev
-      - name: Deploy Application
+      - name: Deploy test application without routes
         run: |
-          echo "TODO"
+          cf zero-downtime-push -f test/integration/manifest.yml -p test/integration --no-route --no-start--env foo=bar --venerable-action stop
+      - name: Check deployment 1
+        run: |
+          echo "Add api tests to check the deployed settings"
+      - name: Deploy add routes to application
+        run: |
+          cf zero-downtime-push -f test/integration/manifest.yml -p test/integration --route-only
+      - name: Delete application
+        run: |
+          cf delete -f puppeteer
+      - name: Deploy test application (legacy push)
+        run: |
+          cf zero-downtime-push -f test/integration/manifest.yml -p test/integration --no-route --no-start--env foo=bar --venerable-action stop --legacy-push
+      - name: Delete application
+        run: |
+         cf delete -f puppeteer
