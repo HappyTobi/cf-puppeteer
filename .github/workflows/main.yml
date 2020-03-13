@@ -2,33 +2,24 @@ name: cf-puppeteer
 on: [push]
 
 jobs:
-  unit_test_job:
-    name: Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go 1.14
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14
-        id: go
-
-      - name: Checkout
-        uses: actions/checkout@v2
-        id: checkout
-
-      - name: Build binary and install dep
-        run: |
-          go mod vendor
-
-      - name: Run tests
-        run: |
-          go test ./...
-
   int_test_job:
     name: Run integration tests
     runs-on: ubuntu-latest
-    needs: [unit_test_job]
     steps:
+      - name: Add CF Cli to apt-get
+        run: 'wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add - echo "deb https://packages.cloudfoundry.org/debian stable main" | sudo tee /etc/apt/sources.list.d/cloudfoundry-cli.list'
+      - name: Install CF CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install cf-cli
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: compile plugin and install them
+        run: |
+          mkdir -p ./artifacts
+          CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer
+          cf install-plugin -f ./artifacts/cf-puppeteer
+          cf plugins
       - name: CF CLI Action
         uses: citizen-of-planet-earth/cf-cli-action@v1
         with:
@@ -38,46 +29,3 @@ jobs:
           cf_org: ${{secrets.ORG_BM}}
           cf_space: "dev"
           command: plugins
-
-  release_job:
-    name: Build binary
-    needs: [unit_test_job, int_test_job]
-    runs-on: ubuntu-latest
-    #if: github.ref == 'refs/heads/develop'
-    steps:
-      - name: Set up Go 1.14
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14
-        id: go
-      - name: Checkout
-        uses: actions/checkout@v2
-        id: checkout
-      - name: create artifacts dirs
-        run: |
-          mkdir -p ./artifacts
-      - name: create linux binary
-        run: |
-          CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer-linux github.com/happytobi/cf-puppeteer
-          shasum ./artifacts/cf-puppeteer-linux
-      - uses: actions/upload-artifact@v1
-        with:
-          name: cf-puppeteer-linux
-          path: artifacts/cf-puppeteer-linux
-      - name: create mac binary
-        run: |
-          CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o ./artifacts/cf-puppeteer-darwin github.com/happytobi/cf-puppeteer
-          shasum ./artifacts/cf-puppeteer-darwin
-      - uses: actions/upload-artifact@v1
-        with:
-          name: cf-puppeteer-darwin
-          path: artifacts/cf-puppeteer-darwin
-      - name: create win binary
-        run: |
-          CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o ./artifacts/cf-puppeteer.exe github.com/happytobi/cf-puppeteer
-          shasum ./artifacts/cf-puppeteer.exe
-      - uses: actions/upload-artifact@v1
-        with:
-          name: cf-puppeteer-windows
-          path: artifacts/cf-puppeteer.exe
-
