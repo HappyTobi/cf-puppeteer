@@ -26,7 +26,8 @@ var _ = Describe("Parse Manifest", func() {
 		Expect(manifest.ApplicationManifests[0].Buildpacks[1]).Should(Equal("go_buildpack"))
 		Expect(manifest.ApplicationManifests[0].Timeout).Should(Equal("2"))
 		Expect(manifest.ApplicationManifests[0].Routes[0]["route"]).Should(Equal("route1.external.test.com"))
-		Expect(manifest.ApplicationManifests[0].Routes[1]["route"]).Should(Equal("route2.internal.test.com"))
+		Expect(manifest.ApplicationManifests[0].Routes[1]["route"]).Should(Equal("route1.test.com"))
+		Expect(manifest.ApplicationManifests[0].Routes[2]["route"]).Should(Equal("route2.internal.test.com"))
 	})
 
 	It("parses complete manifest with services", func() {
@@ -125,7 +126,7 @@ var _ = Describe("Test temp file generation without routes", func() {
 		manifest, noRouteYmlPath, err := ParseApplicationManifest("../fixtures/manifest.yml", "")
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(manifest.ApplicationManifests[0].Routes)).To(Equal(2))
+		Expect(len(manifest.ApplicationManifests[0].Routes)).To(Equal(3))
 		Expect(len(noRouteYmlPath)).ToNot(Equal(0))
 
 		noRouteYml, _, err := ParseApplicationManifest(noRouteYmlPath, "")
