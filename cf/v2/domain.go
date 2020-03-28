@@ -42,24 +42,25 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 	}
 
 	domainGUID := make(map[string]Routes)
+
 	for _, domainRes := range response.Resources {
 		for _, routes := range domains {
-			domain := routes["route"]
-			hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
-
-			_, exists := domainGUID[domain]
-			if exists {
-				exists = len(domainGUID[domain].Host) < len(hostName)
-			}
-
-			//question ist when route matches 2 time what kind of your we are using?
-			if strings.Contains(domain, domainRes.Entity.Name) && len(hostName) > 0 && !exists {
-				hostName = strings.TrimRight(hostName, ".")
-				newRoute := &Routes{
-					Host:   hostName,
-					Domain: domainRes.Entity.Name,
+			for _, domain := range routes {
+				hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
+				_, exists := domainGUID[domain]
+				if exists {
+					exists = len(domainGUID[domain].Host) < len(hostName)
 				}
-				domainGUID[domain] = *newRoute
+
+				//question ist when route matches 2 time what kind of your we are using?
+				if strings.Contains(domain, domainRes.Entity.Name) && len(hostName) > 0 && !exists {
+					hostName = strings.TrimRight(hostName, ".")
+					newRoute := &Routes{
+						Host:   hostName,
+						Domain: domainRes.Entity.Name,
+					}
+					domainGUID[domain] = *newRoute
+				}
 			}
 		}
 	}
@@ -74,9 +75,14 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 		for _, domainRes := range response.Resources {
 			for _, routes := range domains {
 				for _, domain := range routes {
+					hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
 					_, exists := domainGUID[domain]
-					if strings.Contains(domain, domainRes.Entity.Name) && !exists {
-						hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
+					if exists {
+						exists = len(domainGUID[domain].Host) < len(hostName)
+					}
+
+					//question ist when route matches 2 time what kind of your we are using?
+					if strings.Contains(domain, domainRes.Entity.Name) && len(hostName) > 0 && !exists {
 						hostName = strings.TrimRight(hostName, ".")
 						newRoute := &Routes{
 							Host:   hostName,
