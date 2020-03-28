@@ -1,0 +1,15 @@
+---
+applications:
+  - name: puppeteer
+    memory: 64M
+    buildpacks:
+      - nginx_buildpack
+    instances: 1
+    health-check-type: http
+    health-check-http-endpoint: /health
+    routes:
+      - route: puppeteer.apps.internal
+      - route: puppeteer.eu-gb.mybluemix.net
+      - route: puppeteer.apic.eu-gb.mybluemix.net
+    env:
+      GITHUB: https://github.com/HappyTobi/cf-puppeteer

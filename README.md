@@ -5,6 +5,7 @@
 [![Github All Releases](https://img.shields.io/github/downloads/HappyTobi/cf-puppeteer/total.svg)](https://github.com/HappyTobi/cf-puppeteer/releases)
 [![Github All Releases](https://img.shields.io/github/v/release/HappyTobi/cf-puppeteer?include_prereleases)](https://github.com/HappyTobi/cf-puppeteer/releases)
 [![Documentation](https://img.shields.io/badge/Documentation-visit-green)](https://cf-puppeteer.happytobi.com)
+[![Actions Status](https://github.com/HappyTobi/cf-puppeteer/workflows/cf-puppeteer/badge.svg)](https://github.com/HappyTobi/cf-puppeteer/actions)
 
 *cf plugin for hands-off, zero downtime application deploys*
 

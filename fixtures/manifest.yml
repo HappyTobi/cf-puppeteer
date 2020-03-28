@@ -11,6 +11,7 @@ applications:
     timeout: 2
     routes:
       - route: route1.external.test.com
+      - route: route1.test.com
       - route: route2.internal.test.com
     services:
       - service1
