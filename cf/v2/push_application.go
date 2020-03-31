@@ -1,13 +1,14 @@
 package v2
 
 import (
-	"code.cloudfoundry.org/cli/plugin"
 	"fmt"
+	"strconv"
+
+	"code.cloudfoundry.org/cli/plugin"
 	"github.com/happytobi/cf-puppeteer/arguments"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	"github.com/happytobi/cf-puppeteer/ui"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 //Push interface with all v3 actions
@@ -49,6 +50,10 @@ func (resource *LegacyResourcesData) PushApplication(parsedArguments *arguments.
 
 	if parsedArguments.NoStart {
 		args = append(args, "--no-start")
+	}
+
+	if parsedArguments.VarsFile != "" {
+		args = append(args, "--vars-file", parsedArguments.VarsFile)
 	}
 
 	ui.Say("start pushing application with arguments %s", args)
