@@ -1,0 +1,3 @@
+appname: puppeteer_var
+memory: 64mb
+route: puppeteer

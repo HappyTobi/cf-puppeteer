@@ -1,0 +1,15 @@
+---
+applications:
+  - name: ((appname))
+    memory: ((memory))
+    buildpacks:
+      - nginx_buildpack
+    instances: 1
+    health-check-type: http
+    health-check-http-endpoint: /health
+    routes:
+      - route: ((route)).apps.internal
+      - route: ((route)).eu-gb.mybluemix.net
+      - route: ((route)).apic.eu-gb.mybluemix.net
+    env:
+      GITHUB: https://github.com/HappyTobi/cf-puppeteer
