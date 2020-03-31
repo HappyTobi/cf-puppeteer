@@ -76,9 +76,9 @@ jobs:
           cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer
 
   int_var_test_job:
-    name: Run integration tests
+    name: Run integration with vars file
     runs-on: ubuntu-latest
-    needs: [unit_test_job]
+    needs: [unit_test_job, int_test_job]
     steps:
       - name: Add CF Cli to apt-get
         run: |
@@ -101,10 +101,10 @@ jobs:
       - name: CF Login
         run: |
           cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p ${{secrets.PASSWORD_BM}} -o ${{secrets.ORG_BM}} -s dev
-      - name: Deploy test application without routes
+      - name: Deploy test application with vars file
         run: |
           cf zero-downtime-push -f test/integration/application/manifest-vars.yml -p test/integration/application/ --vars-file test/integration/application/vars.yml
-      - name: Check deployment 1
+      - name: Check deployment with vars file (route)
         run: |
           status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.eu-gb.mybluemix.net)
           if [[ "$status_code" -ne 200 ]] ; then
@@ -112,6 +112,29 @@ jobs:
           else
             exit 0
           fi
+      - name: Show application
+        run: |
+          cf app puppeteer2
+      - name: Delete application
+        run: |
+          cf delete -f puppeteer
+          cf delete-route -f apps.internal --hostname puppeteer2
+          cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer2
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2
+      - name: Deploy test application with vars file (legacy-push)
+        run: |
+          cf zero-downtime-push -f test/integration/application/manifest-vars.yml -p test/integration/application/ --vars-file test/integration/application/vars.yml --legacy-push
+      - name: Check legacy deployment with vars file (route)
+        run: |
+          status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.eu-gb.mybluemix.net)
+          if [[ "$status_code" -ne 200 ]] ; then
+            exit 1
+          else
+            exit 0
+          fi
+      - name: Show application
+        run: |
+          cf app puppeteer2
       - name: Delete application
         run: |
           cf delete -f puppeteer
