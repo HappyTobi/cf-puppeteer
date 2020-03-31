@@ -76,7 +76,7 @@ jobs:
           cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer
 
   int_var_test_job:
-    name: Run integration with vars file
+    name: Run integration tests with vars file
     runs-on: ubuntu-latest
     needs: [unit_test_job, int_test_job]
     steps:
