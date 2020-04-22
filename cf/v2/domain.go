@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/happytobi/cf-puppeteer/ui"
 )
 
 type Routes struct {
@@ -34,13 +36,13 @@ type DomainResponse struct {
 
 func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]Routes, error) {
 	//default order asc.
+	ui.DebugMessage("GetDomain called, try to find matching domains for all routes %v", domains)
 	path := fmt.Sprintf(`/v2/domains`)
-
 	response, err := resource.getDomain(path)
 	if err != nil {
 		return nil, err
 	}
-
+	ui.DebugMessage("/v2/domain response was %v", path)
 	domainGUID := make(map[string]Routes)
 
 	for _, domainRes := range response.Resources {
@@ -59,6 +61,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 						Host:   hostName,
 						Domain: domainRes.Entity.Name,
 					}
+					ui.DebugMessage("add new route for later mapping %v", newRoute)
 					domainGUID[domain] = *newRoute
 				}
 			}
@@ -88,6 +91,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 							Host:   hostName,
 							Domain: domainRes.Entity.Name,
 						}
+						ui.DebugMessage("add new route for later mapping (paged) %v", newRoute)
 						domainGUID[domain] = *newRoute
 					}
 				}
