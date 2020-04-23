@@ -52,7 +52,7 @@ jobs:
           cf login -a ${{ secrets.API_BM }} -u ${{secrets.USER_NAME_BM}} -p ${{secrets.PASSWORD_BM}} -o ${{secrets.ORG_BM}} -s dev
       - name: Deploy test application without routes
         run: |
-          CF_TRACE=/dev/stdout cf zero-downtime-push -f test/integration/application/manifest.yml -p test/integration/application/ --no-route --no-start --env foo=bar --venerable-action stop
+          cf zero-downtime-push -f test/integration/application/manifest.yml -p test/integration/application/ --no-route --no-start --env foo=bar --venerable-action stop
       - name: Check deployment 1
         run: |
           echo "Add api tests to check the deployed settings"
