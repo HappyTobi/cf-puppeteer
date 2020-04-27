@@ -55,7 +55,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 				}
 
 				//question ist when route matches 2 time what kind of your we are using?
-				if strings.Contains(domain, domainRes.Entity.Name) && len(hostName) > 0 && !exists {
+				if strings.Contains(domain, domainRes.Entity.Name) && !exists {
 					hostName = strings.TrimRight(hostName, ".")
 					newRoute := &Routes{
 						Host:   hostName,
@@ -85,7 +85,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 					}
 
 					//question ist when route matches 2 time what kind of your we are using?
-					if strings.Contains(domain, domainRes.Entity.Name) && len(hostName) > 0 && !exists {
+					if strings.Contains(domain, domainRes.Entity.Name) && !exists {
 						hostName = strings.TrimRight(hostName, ".")
 						newRoute := &Routes{
 							Host:   hostName,
