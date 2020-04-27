@@ -97,13 +97,13 @@ var _ = Describe("cf-domain test", func() {
 			domainResponse, err := resourcesData.GetDomain(routes)
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
+			Expect(4).To(Equal(len(*domainResponse)))
 
 			checkMap := make(map[string]string, len(*domainResponse))
 			for _, value := range *domainResponse {
 				checkMap[value.Host] = value.Domain
 			}
 
-			Expect(checkMap["foo"]).To(Equal("example.com"))
 			Expect(checkMap["my"]).To(Equal("foo.example.com"))
 			Expect(checkMap["puppeteer"]).To(Equal("internal.emea.github.com"))
 			Expect(checkMap["url"]).To(Equal("test-domain.com"))
