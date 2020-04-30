@@ -1,10 +1,11 @@
 package v3_test
 
 import (
+	"testing"
+
 	"code.cloudfoundry.org/cli/plugin/pluginfakes"
 	"github.com/happytobi/cf-puppeteer/cf/cli"
 	v3 "github.com/happytobi/cf-puppeteer/cf/v3"
-	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -103,11 +104,13 @@ var _ = Describe("cf-domain test", func() {
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
 
-			Expect((*domainResponse)[0].Host).To(Equal("foo"))
-			Expect((*domainResponse)[0].Domain).To(Equal("example.com"))
+			checkMap := make(map[string]string, len(*domainResponse))
+			for _, value := range *domainResponse {
+				checkMap[value.Host] = value.Domain
+			}
 
-			Expect((*domainResponse)[1].Host).To(Equal("url"))
-			Expect((*domainResponse)[1].Domain).To(Equal("test-domain.com"))
+			Expect(checkMap["foo"]).To(Equal("example.com"))
+			Expect(checkMap["url"]).To(Equal("test-domain.com"))
 
 			Expect(err).ToNot(HaveOccurred())
 		})
