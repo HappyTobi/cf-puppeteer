@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - add more trace logging
+- make tests more stable
 
 ## [1.2.0] - 2020-02-24
 
