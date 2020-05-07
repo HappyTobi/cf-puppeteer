@@ -78,6 +78,17 @@ $ cf zero-downtime-push application-to-replace \
 
 While *CF-Puppeteer* gives precedence to command line parameters, you can also specify `health-check-type` and `health-check-http-endpoint` in the application manifest. However, Cloud Foundry currently does not support `invocation-timeout` in application manifests. Therefore, if you want to set it, always use the command line.
 
+### Specifying Routes
+
+*CF-Puppeteer* will *not* create default routes for each application like [`cf push` normally would](https://docs.cloudfoundry.org/devguide/deploy-apps/deploy-app.html#default-route). To ensure your applications have the proper routing, make sure you include at least one in your `manifest.yml` 
+
+```yaml
+applications:
+  - ...
+    routes:
+      - my-application.com
+```
+
 ## Method
 
 *CF-Puppeteer* takes a different approach compared to other zero-downtime plugins. It
