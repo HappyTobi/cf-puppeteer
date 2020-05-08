@@ -86,7 +86,7 @@ While *CF-Puppeteer* gives precedence to command line parameters, you can also s
 applications:
   - ...
     routes:
-      - my-application.com
+      - route: my-app.example.com
 ```
 
 ## Method
