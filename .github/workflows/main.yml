@@ -122,6 +122,7 @@ jobs:
           cf delete -f puppeteer
           cf delete-route -f apps.internal --hostname puppeteer2
           cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer2
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2 --path api
           cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2
       - name: Deploy test application with vars file (legacy-push)
         run: |
@@ -150,6 +151,7 @@ jobs:
           cf delete -f puppeteer
           cf delete-route -f apps.internal --hostname puppeteer2
           cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer2
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2 --path api
           cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2
 
   release_job:
