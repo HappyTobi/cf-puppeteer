@@ -135,7 +135,7 @@ jobs:
           else
             exit 0
           fi
-      - name: Check legacy deployment with vars file (route)
+      - name: Check legacy deployment with vars file (route path)
         run: |
           status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.eu-gb.mybluemix.net/api)
           if [[ "$status_code" -ne 200 ]] ; then
