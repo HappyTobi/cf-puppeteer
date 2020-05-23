@@ -9,9 +9,11 @@ import (
 	"github.com/happytobi/cf-puppeteer/ui"
 )
 
+//Routes that contains all informations
 type Routes struct {
 	Host   string
 	Domain string
+	Path   string
 }
 
 //DomainResponse reponse while loading domains
@@ -48,6 +50,13 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 	for _, domainRes := range response.Resources {
 		for _, routes := range domains {
 			for _, domain := range routes {
+				dhp := strings.Split(domain, "/")
+				path := ""
+				if len(dhp) > 1 {
+					path = dhp[1]
+				}
+				domain = dhp[0]
+
 				hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
 				_, exists := domainGUID[domain]
 				if exists {
@@ -60,6 +69,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 					newRoute := &Routes{
 						Host:   hostName,
 						Domain: domainRes.Entity.Name,
+						Path:   path,
 					}
 					ui.DebugMessage("add new route for later mapping %v", newRoute)
 					domainGUID[domain] = *newRoute
@@ -78,6 +88,14 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 		for _, domainRes := range response.Resources {
 			for _, routes := range domains {
 				for _, domain := range routes {
+
+					dhp := strings.Split(domain, "/")
+					path := ""
+					if len(dhp) > 1 {
+						path = dhp[1]
+					}
+					domain = dhp[0]
+
 					hostName := strings.ReplaceAll(domain, domainRes.Entity.Name, "")
 					_, exists := domainGUID[domain]
 					if exists {
@@ -90,6 +108,7 @@ func (resource *LegacyResourcesData) GetDomain(domains []map[string]string) (*[]
 						newRoute := &Routes{
 							Host:   hostName,
 							Domain: domainRes.Entity.Name,
+							Path:   path,
 						}
 						ui.DebugMessage("add new route for later mapping (paged) %v", newRoute)
 						domainGUID[domain] = *newRoute

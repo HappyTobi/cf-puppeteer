@@ -1,9 +1,10 @@
 package v2_test
 
 import (
+	"testing"
+
 	"code.cloudfoundry.org/cli/plugin/pluginfakes"
 	v2 "github.com/happytobi/cf-puppeteer/cf/v2"
-	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -151,11 +152,11 @@ var _ = Describe("cf-domain test", func() {
 
 			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
 
-			var routes = []map[string]string{0: {"route": " staging-p.cfapp.io"}, 1: {"route": "staging-product.cfapp.io"}, 2: {"route": "staging.product.com"}}
+			var routes = []map[string]string{0: {"route": " staging-p.cfapp.io"}, 1: {"route": "staging-product.cfapp.io"}, 2: {"route": "staging.product.com"}, 3: {"route": "bcd-test.cfapp.io/api"}}
 			domainResponse, err := resourcesData.GetDomain(routes)
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
-			Expect(3).To(Equal(len(*domainResponse)))
+			Expect(4).To(Equal(len(*domainResponse)))
 
 			Expect(err).ToNot(HaveOccurred())
 		})

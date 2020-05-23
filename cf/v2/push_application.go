@@ -80,7 +80,7 @@ func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string, venAppE
 
 	ui.Say("map routes to new application %s", appName)
 	for _, route := range *domains {
-		err = resource.MapRoute(appName, route.Host, route.Domain)
+		err = resource.MapRoute(appName, route.Host, route.Domain, route.Path)
 		if err != nil {
 			//loop through
 			ui.Warn("could not map route %s.%s to application", route.Host, route.Domain, appName)
@@ -90,7 +90,7 @@ func (resource *LegacyResourcesData) SwitchRoutesOnly(venAppName string, venAppE
 	if venAppExists {
 		ui.Say("remove routes from venerable application %s", venAppName)
 		for _, route := range *domains {
-			err = resource.UnMapRoute(venAppName, route.Host, route.Domain)
+			err = resource.UnMapRoute(venAppName, route.Host, route.Domain, route.Path)
 			if err != nil {
 				//loop through
 				ui.Warn("could not remove route %s.%s from application", route.Host, route.Domain, venAppName)
