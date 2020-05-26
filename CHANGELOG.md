@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - push application with routes that contains a path element
+- vars file multiple placeholder replacement in one line
 
 ## [1.2.1] - 2020-05-24
 

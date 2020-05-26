@@ -1,3 +1,4 @@
 instances: 2
 memory: 1G
 host: myHost
+domain_suffix: .test.com
