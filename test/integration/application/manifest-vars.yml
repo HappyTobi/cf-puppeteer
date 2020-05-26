@@ -11,6 +11,6 @@ applications:
       - route: ((route)).apps.internal
       - route: ((route)).eu-gb.mybluemix.net
       - route: ((route)).eu-gb.mybluemix.net/api
-      - route: ((route)).apic.eu-gb.mybluemix.net
+      - route: ((route)).apic((domain_suffix))
     env:
       GITHUB: https://github.com/HappyTobi/cf-puppeteer
