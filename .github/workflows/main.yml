@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   unit_test_job:
-    name: Tests
+    name: Run unit tests
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.14
