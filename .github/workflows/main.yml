@@ -1,4 +1,4 @@
-name: cf-puppeteer
+name: CF-Puppeteer Build and Test
 on: [push]
 
 jobs:
