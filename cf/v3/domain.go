@@ -11,6 +11,7 @@ import (
 type Routes struct {
 	Host   string
 	Domain string
+	Path   string
 }
 
 //DomainResponse reponse while loading domains
@@ -64,6 +65,13 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 	for _, domainRes := range response.Resources {
 		for _, routes := range domains {
 			for _, domain := range routes {
+				dhp := strings.Split(domain, "/")
+				path := ""
+				if len(dhp) > 1 {
+					path = dhp[1]
+				}
+				domain = dhp[0]
+
 				_, exists := domainGUID[domain]
 				if strings.Contains(domain, domainRes.Name) && !exists {
 					hostName := strings.ReplaceAll(domain, domainRes.Name, "")
@@ -71,6 +79,7 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 					newRoute := &Routes{
 						Host:   hostName,
 						Domain: domainRes.Name,
+						Path:   path,
 					}
 					domainGUID[domain] = *newRoute
 				}
@@ -87,6 +96,13 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 		for _, domainRes := range response.Resources {
 			for _, routes := range domains {
 				for _, domain := range routes {
+					dhp := strings.Split(domain, "/")
+					path := ""
+					if len(dhp) > 1 {
+						path = dhp[1]
+					}
+					domain = dhp[0]
+
 					_, exists := domainGUID[domain]
 					if strings.Contains(domain, domainRes.Name) && !exists {
 						hostName := strings.ReplaceAll(domain, domainRes.Name, "")
@@ -94,6 +110,7 @@ func (resource *ResourcesData) GetDomain(domains []map[string]string) (*[]Routes
 						newRoute := &Routes{
 							Host:   hostName,
 							Domain: domainRes.Name,
+							Path:   path,
 						}
 						domainGUID[domain] = *newRoute
 					}

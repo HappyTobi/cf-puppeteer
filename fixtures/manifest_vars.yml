@@ -11,8 +11,8 @@ applications:
     timeout: 2
     routes:
       - route: ((host)).external.test.com
-      - route: ((host)).internal.test.com
-      - route: super.external.test.com
+      - route: ((host)).internal((domain_suffix))
+      - route: super.external((domain_suffix))
     services:
       - service1
       - service2

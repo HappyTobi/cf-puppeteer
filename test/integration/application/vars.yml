@@ -1,3 +1,4 @@
 appname: puppeteer2
 memory: 64mb
 route: puppeteer2
+domain_suffix: .eu-gb.mybluemix.net

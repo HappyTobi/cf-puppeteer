@@ -14,11 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - check space quota before deployment (if user pass the option)
 - set timeout how long the deployment will wait for more / free space
 
-## [1.2.1] - 2020-04-30
+## [1.2.2] - 2020-04-30
+
+### Fixed
+- push application with routes that contains a path element
+- vars file multiple placeholder replacement in one line
+
+## [1.2.1] - 2020-05-24
+
+### Added
+- release action (github actions)
 
 ### Fixed
 - find matching routes
 - pss a vars file combined with 'legacy-push'
+
+### Changed
+- add more tests for filed issues
+- add information about 'Specifying Routes' (contribution)
 
 ### Changed
 - add more trace logging

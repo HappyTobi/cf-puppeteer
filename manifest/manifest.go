@@ -2,13 +2,14 @@ package manifest
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 /*
@@ -74,7 +75,7 @@ func ParseApplicationManifest(manifestFilePath string, varsFilePath string) (man
 		for i := 0; i < appManifestElement.NumField(); i++ {
 			appElementField := appManifestElement.Field(i)
 			fieldValue := fmt.Sprintf("%v", appElementField.Interface())
-			for mIndex, match := range interpolationRegex.FindAllSubmatch([]byte(fieldValue), -1) {
+			for _, match := range interpolationRegex.FindAllSubmatch([]byte(fieldValue), -1) {
 				//get variable name
 				matchedVar := strings.TrimPrefix(string(match[1]), "!")
 				varsValue := varsFile[matchedVar]
@@ -85,12 +86,14 @@ func ParseApplicationManifest(manifestFilePath string, varsFilePath string) (man
 				}
 				//change slices
 				if appElementField.Kind() == reflect.Slice {
-					sliceElementField := appElementField.Index(mIndex)
-					if sliceElementField.Kind() == reflect.Map {
-						for _, mv := range sliceElementField.MapKeys() {
-							x := sliceElementField.MapIndex(mv)
-							nx := strings.ReplaceAll(x.String(), fmt.Sprintf("((%v))", matchedVar), fmt.Sprintf("%v", varsValue))
-							sliceElementField.SetMapIndex(mv, reflect.ValueOf(nx))
+					for y := 0; y < appElementField.Len(); y++ {
+						sliceElementField := appElementField.Index(y)
+						if sliceElementField.Kind() == reflect.Map {
+							for _, mv := range sliceElementField.MapKeys() {
+								x := sliceElementField.MapIndex(mv)
+								nx := strings.ReplaceAll(x.String(), fmt.Sprintf("((%v))", matchedVar), fmt.Sprintf("%v", varsValue))
+								sliceElementField.SetMapIndex(mv, reflect.ValueOf(nx))
+							}
 						}
 					}
 				}

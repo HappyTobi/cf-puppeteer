@@ -1,9 +1,9 @@
-name: cf-puppeteer
+name: CF-Puppeteer Build and Test
 on: [push]
 
 jobs:
   unit_test_job:
-    name: Tests
+    name: Run unit tests
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.14
@@ -113,6 +113,22 @@ jobs:
           else
             exit 0
           fi
+      - name: Check deployment with vars file (domain_suffix)
+        run: |
+          status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.apic.eu-gb.mybluemix.net)
+          if [[ "$status_code" -ne 200 ]] ; then
+            exit 1
+          else
+            exit 0
+          fi
+      - name: Check deployment with vars file (route path)
+        run: |
+          status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.eu-gb.mybluemix.net/api)
+          if [[ "$status_code" -ne 200 ]] ; then
+            exit 1
+          else
+            exit 0
+          fi
       - name: Show application
         run: |
           cf apps
@@ -122,6 +138,7 @@ jobs:
           cf delete -f puppeteer
           cf delete-route -f apps.internal --hostname puppeteer2
           cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer2
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2 --path api
           cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2
       - name: Deploy test application with vars file (legacy-push)
         run: |
@@ -129,6 +146,22 @@ jobs:
       - name: Check legacy deployment with vars file (route)
         run: |
           status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.eu-gb.mybluemix.net)
+          if [[ "$status_code" -ne 200 ]] ; then
+            exit 1
+          else
+            exit 0
+          fi
+      - name: Check legacy deployment with vars file (domain_suffix)
+        run: |
+          status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.apic.eu-gb.mybluemix.net)
+          if [[ "$status_code" -ne 200 ]] ; then
+            exit 1
+          else
+            exit 0
+          fi
+      - name: Check legacy deployment with vars file (route path)
+        run: |
+          status_code=$(curl --write-out %{http_code} --silent --output /dev/null puppeteer2.eu-gb.mybluemix.net/api)
           if [[ "$status_code" -ne 200 ]] ; then
             exit 1
           else
@@ -142,6 +175,7 @@ jobs:
           cf delete -f puppeteer
           cf delete-route -f apps.internal --hostname puppeteer2
           cf delete-route -f apic.eu-gb.mybluemix.net --hostname puppeteer2
+          cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2 --path api
           cf delete-route -f eu-gb.mybluemix.net --hostname puppeteer2
 
   release_job:

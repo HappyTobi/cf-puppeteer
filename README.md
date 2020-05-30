@@ -26,7 +26,7 @@ To get an overview of the changes between versions, read the [changelog](CHANGEL
 
 ## Version
 
-The latest version of *CF-Puppeteer* is *1.2.1*. It works with and is based on Cloud Foundry CLI version 6.43.0.
+The latest version of *CF-Puppeteer* is *1.2.2*. It works with and is based on Cloud Foundry CLI version 6.43.0.
 
 For more details on the most recent release, check out the [changelog](CHANGELOG.md).
 

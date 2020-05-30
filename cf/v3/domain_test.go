@@ -99,18 +99,25 @@ var _ = Describe("cf-domain test", func() {
 
 			cliConn.CliCommandWithoutTerminalOutputReturns(response, nil)
 
-			var routes = []map[string]string{0: {"key": "route", "value": "url.test-domain.com"}, 1: {"key": "route", "value": "foo.example.com"}}
+			var routes = []map[string]string{0: {"key": "route", "value": "url.test-domain.com"}, 1: {"key": "route", "value": "foo.example.com"}, 2: {"key": "route", "value": "boo.example.com/api"}}
 			domainResponse, err := resourcesData.GetDomain(routes)
 
 			Expect(cliConn.CliCommandWithoutTerminalOutputCallCount()).To(Equal(1))
 
 			checkMap := make(map[string]string, len(*domainResponse))
+			checkPath := make(map[string]string, len(*domainResponse))
 			for _, value := range *domainResponse {
 				checkMap[value.Host] = value.Domain
+				checkPath[value.Host] = value.Path
 			}
 
 			Expect(checkMap["foo"]).To(Equal("example.com"))
 			Expect(checkMap["url"]).To(Equal("test-domain.com"))
+			Expect(checkMap["boo"]).To(Equal("example.com"))
+
+			Expect(checkPath["foo"]).To(Equal(""))
+			Expect(checkPath["url"]).To(Equal(""))
+			Expect(checkPath["boo"]).To(Equal("api"))
 
 			Expect(err).ToNot(HaveOccurred())
 		})
