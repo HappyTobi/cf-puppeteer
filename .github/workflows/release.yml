@@ -20,39 +20,39 @@ jobs:
         uses: actions/checkout@v2
         id: checkout
       
-      - name: create artifacts dirs
+      - name: Create artifacts dirs
         run: |
           mkdir -p ./artifacts
     
-      - name: create linux binary
+      - name: Create linux binary
         id: create_linux_binary
         run: |
           CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ./artifacts/cf-puppeteer-linux github.com/happytobi/cf-puppeteer
           LIN_HASH=$(shasum ./artifacts/cf-puppeteer-linux)
           echo "::set-env name=LIN_HASH::$LIN_HASH"
-          echo "::set-output name=dir::$(./artifacts/cf-puppeteer-linux)"
-          echo "::set-output name=file::$(cf-puppeteer-linux)"
+          echo "::set-output name=dir::$(echo "./artifacts/cf-puppeteer-linux")"
+          echo "::set-output name=file::$(echo "cf-puppeteer-linux")"
     
-      - name: create mac binary
+      - name: Create mac binary
         id: create_mac_binary
         run: |
           CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o ./artifacts/cf-puppeteer-darwin github.com/happytobi/cf-puppeteer
           OSX_HASH=$(shasum ./artifacts/cf-puppeteer-darwin)
           echo "::set-env name=OSX_HASH::$OSX_HASH"
-          echo "::set-output name=dir::$(./artifacts/cf-puppeteer-darwin)"
-          echo "::set-output name=file::$(cf-puppeteer-darwin)"
+          echo "::set-output name=dir::$(echo "./artifacts/cf-puppeteer-darwin")"
+          echo "::set-output name=file::$(echo "cf-puppeteer-darwin")"
     
-      - name: create win binary
+      - name: Create win binary
         id: create_win_binary
         run: |
           CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o ./artifacts/cf-puppeteer.exe github.com/happytobi/cf-puppeteer
           WIN_HASH=$(shasum ./artifacts/cf-puppeteer.exe)
           echo "::set-env name=WIN_HASH::$WIN_HASH"
-          echo "::set-output name=dir::$(./artifacts/cf-puppeteer.exe)"
-          echo "::set-output name=file::$(cf-puppeteer.exe)"
-      - name: version
+          echo "::set-output name=dir::$(echo "./artifacts/cf-puppeteer.exe")"
+          echo "::set-output name=file::$(echo "cf-puppeteer.exe")"
+      - name: Get Version
         run: |
-          version=$(sed -i 's/$GITHUB_REF//g')
+          version=$(echo "${GITHUB_REF}" |sed 's#refs/tags/v##g' )
           echo "::set-env name=VERSION::$version"
       - name: Create Release
         id: create_release
@@ -63,17 +63,19 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
-          prerelease: true
+          prerelease: false
           body: |
-            The new release Version ${{ VERSION }} is here
-            to see all changes read the Blog  [post](https://cf-puppeteer.happytobi.com/posts/release_${{ VERSION }}/)
+            The new release Version ${{ env.VERSION }} is here
+
+            to see all changes read the Blog  [post](https://cf-puppeteer.happytobi.com/posts/release_${{ env.VERSION }}/)
+            
             SHA1 Hashes for files
-            OSX: ${{ OSX_HASH }}
-            WIN: ${{ WIN_HASH }}
-            LIN: ${{ LIN_HASH }}
+            OSX: ${{ env.OSX_HASH }}
+            WIN: ${{ env.WIN_HASH }}
+            LIN: ${{ env.LIN_HASH }}
 
       - name: Upload Release Asset Linux
-        id: upload-release-asset
+        id: upload-release-asset_linux
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,8 +84,9 @@ jobs:
           asset_path: ${{ steps.create_linux_binary.outputs.dir }}
           asset_name: ${{ steps.create_linux_binary.outputs.file }}
           asset_content_type: application/octet-stream
+
       - name: Upload Release Asset Mac
-        id: upload-release-asset
+        id: upload-release-asset_mac
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,7 +97,7 @@ jobs:
           asset_content_type: application/octet-stream
       
       - name: Upload Release Asset Windows
-        id: upload-release-asset
+        id: upload-release-asset_win
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
